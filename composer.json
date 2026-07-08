@@ -1,20 +1,25 @@
 {
-    "name": "stimmt/craft-mcp",
-    "description": "MCP (Model Context Protocol) server for Craft CMS",
+    "name": "2rm/craft-mcp",
+    "description": "MCP (Model Context Protocol) server for Craft CMS — 2RM fork with Neo content-builder tools, component scaffolding, and Freeform surface",
     "type": "craft-plugin",
     "license": "MIT",
     "authors": [
         {
-            "name": "Max van Essen",
-            "email": "support@stimmt.digital",
-            "homepage": "https://github.com/vanEssenMax"
+            "name": "2RM",
+            "email": "justinl@2rm.com",
+            "homepage": "https://2rm.com"
+        },
+        {
+            "name": "Max van Essen / Stimmt Digital",
+            "homepage": "https://github.com/stimmtdigital/craft-mcp",
+            "role": "Original author (forked from stimmt/craft-mcp, MIT)"
         }
     ],
-    "homepage": "https://stimmt.digital",
+    "homepage": "https://2rm.com",
     "support": {
-        "email": "support@stimmt.digital",
-        "issues": "https://github.com/stimmtdigital/craft-mcp/issues",
-        "source": "https://github.com/stimmtdigital/craft-mcp"
+        "email": "justinl@2rm.com",
+        "issues": "https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/issues",
+        "source": "https://github.com/Two-Rivers-Marketing/craft-mcp-2rm"
     },
     "keywords": [
         "craftcms",
