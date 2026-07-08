@@ -59,6 +59,13 @@ return [
     // get_block_type tools (requires the Neo plugin).
     // Default: 'contentBuilder'
     'builderFieldHandle' => 'contentBuilder',
+
+    // Absolute path to a custom body_blocks template stub used by the
+    // create_block_type tool (requires the Neo plugin). The stub file may
+    // embed the __BLOCK_HANDLE__, __FIELD_HINTS__ and __CHILDREN_LOOP__
+    // tokens. When null, the built-in 2RM body-block stub is used.
+    // Default: null
+    'templateStubPath' => null,
 ];
 ```
 
@@ -72,6 +79,7 @@ return [
 | `allowedIps` | `array` | `[]` | IP addresses allowed to connect (empty = all allowed) |
 | `logLevel` | `string` | `'error'` | Minimum log level for `storage/logs/mcp-server.log` |
 | `builderFieldHandle` | `string` | `'contentBuilder'` | Handle of the Neo content-builder field used by `describe_content_builder` / `get_block_type` |
+| `templateStubPath` | `string\|null` | `null` | Path to a custom template stub for `create_block_type` (null = built-in 2RM body-block stub) |
 
 ## Environment Variables
 

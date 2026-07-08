@@ -40,6 +40,14 @@ class Settings extends Model {
     public string $builderFieldHandle = 'contentBuilder';
 
     /**
+     * Absolute path to a custom body_blocks template stub used by the
+     * create_block_type tool. Null uses the built-in 2RM body-block stub.
+     * The stub file may embed __BLOCK_HANDLE__, __FIELD_HINTS__ and
+     * __CHILDREN_LOOP__ tokens (see support\BlockTypeStub).
+     */
+    public ?string $templateStubPath = null;
+
+    /**
      * @return array<int, array<int|string, mixed>>
      */
     #[Override]
@@ -49,6 +57,7 @@ class Settings extends Model {
             [['disabledTools', 'disabledPrompts', 'disabledResources', 'allowedIps'], 'each', 'rule' => ['string']],
             [['logLevel'], 'in', 'range' => ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']],
             [['builderFieldHandle'], 'string'],
+            [['templateStubPath'], 'string'],
         ];
     }
 }
