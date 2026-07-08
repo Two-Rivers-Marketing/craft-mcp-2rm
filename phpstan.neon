@@ -25,6 +25,8 @@ parameters:
         - '#Psy\\#'
         # Commerce is optional - tools check availability at runtime
         - '#craft\\commerce\\#'
+        # Neo is optional - tools check availability at runtime
+        - '#benf\\neo\\#'
         # Missing class reference (if class doesn't exist)
         - '#Class twoRivers\\craft\\Mcp\\tools\\SchemaTools not found#'
         # Dead catch - ReflectionException

@@ -19,6 +19,7 @@ use twoRivers\craft\Mcp\tools\EntryTools;
 use twoRivers\craft\Mcp\tools\GlobalSetTools;
 use twoRivers\craft\Mcp\tools\GraphqlTools;
 use twoRivers\craft\Mcp\tools\McpTools;
+use twoRivers\craft\Mcp\tools\NeoSchemaTools;
 use twoRivers\craft\Mcp\tools\SiteTools;
 use twoRivers\craft\Mcp\tools\SystemTools;
 use twoRivers\craft\Mcp\tools\TinkerTools;
@@ -311,6 +312,11 @@ final class ToolRegistry {
         // Add Commerce tools if Commerce is installed
         if (CommerceTools::isAvailable()) {
             $tools[] = CommerceTools::class;
+        }
+
+        // Add Neo schema tools if Neo is installed
+        if (NeoSchemaTools::isAvailable()) {
+            $tools[] = NeoSchemaTools::class;
         }
 
         // Use addCoreTools which bypasses source validation

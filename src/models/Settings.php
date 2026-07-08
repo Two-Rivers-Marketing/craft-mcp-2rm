@@ -34,6 +34,12 @@ class Settings extends Model {
     public string $logLevel = 'error';
 
     /**
+     * Handle of the site's primary Neo content-builder field.
+     * Used as the default field for describe_content_builder / get_block_type.
+     */
+    public string $builderFieldHandle = 'contentBuilder';
+
+    /**
      * @return array<int, array<int|string, mixed>>
      */
     #[Override]
@@ -42,6 +48,7 @@ class Settings extends Model {
             [['enabled', 'enableDangerousTools'], 'boolean'],
             [['disabledTools', 'disabledPrompts', 'disabledResources', 'allowedIps'], 'each', 'rule' => ['string']],
             [['logLevel'], 'in', 'range' => ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']],
+            [['builderFieldHandle'], 'string'],
         ];
     }
 }
