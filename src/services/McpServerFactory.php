@@ -75,20 +75,38 @@ class McpServerFactory {
 
     private function getInstructions(): string {
         return <<<'INSTRUCTIONS'
-This MCP server provides access to a Craft CMS installation.
+This MCP server provides access to a Craft CMS installation built on the 2RM content model.
+
+## The 2RM Content Model
+
+Pages on 2RM sites are entries whose primary content lives in a Neo field called the
+"content builder" (default handle `contentBuilder`, configurable via the plugin's
+`builderFieldHandle` setting). Everything the visitor sees is a tree of Neo blocks:
+
+- **Block types map 1:1 to Twig templates** at `templates/body_blocks/<blockTypeHandle>.twig`.
+  A block type without a matching template renders nothing.
+- **Shared property fields** appear on most block types and control presentation:
+  `sectionProperties` (layout/spacing), `backgroundProperties` (background color/image),
+  and `extraClasses` (extra CSS classes). Treat these as styling, not content.
+- **Nesting rules** (topLevel, childBlocks, maxChildBlocks) define which blocks can
+  contain which - e.g. column containers holding column items.
+
+## Orientation Workflow
+
+1. Call `describe_content_builder` FIRST before any content-builder work. It returns
+   every block type with its fields (including valid option values for dropdowns,
+   radio buttons, checkboxes, multi-selects, and lightswitches), nesting rules, and
+   whether the matching body_blocks template exists.
+2. Use `get_block_type` to inspect a single block type in full depth.
+3. Use `list_*` tools to explore available data before making changes.
+4. Use `get_*` tools to inspect specific items.
+5. Check schema/fields before creating or updating entries; read before you mutate.
 
 ## Available Capabilities
 
-**Tools**: Query and manage entries, assets, users, categories, commerce data
+**Tools**: Query and manage entries, assets, users, categories, commerce data, Neo schema
 **Resources**: Read configuration, schema information, system state
 **Prompts**: Generate content, analyze structure, create entries
-
-## Best Practices
-
-1. Use `list_*` tools to explore available data before making changes
-2. Use `get_*` tools to inspect specific items
-3. Check schema/fields before creating or updating entries
-4. Use read-only queries before mutations
 INSTRUCTIONS;
     }
 

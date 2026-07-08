@@ -53,6 +53,12 @@ return [
     // Valid values: 'debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'
     // Default: 'error'
     'logLevel' => 'error',
+
+    // Handle of the site's primary Neo content-builder field.
+    // Used as the default field for the describe_content_builder and
+    // get_block_type tools (requires the Neo plugin).
+    // Default: 'contentBuilder'
+    'builderFieldHandle' => 'contentBuilder',
 ];
 ```
 
@@ -65,6 +71,7 @@ return [
 | `disabledTools` | `array` | `[]` | List of tool names to disable regardless of other settings |
 | `allowedIps` | `array` | `[]` | IP addresses allowed to connect (empty = all allowed) |
 | `logLevel` | `string` | `'error'` | Minimum log level for `storage/logs/mcp-server.log` |
+| `builderFieldHandle` | `string` | `'contentBuilder'` | Handle of the Neo content-builder field used by `describe_content_builder` / `get_block_type` |
 
 ## Environment Variables
 
