@@ -19,6 +19,7 @@ use twoRivers\craft\Mcp\tools\EntryTools;
 use twoRivers\craft\Mcp\tools\GlobalSetTools;
 use twoRivers\craft\Mcp\tools\GraphqlTools;
 use twoRivers\craft\Mcp\tools\McpTools;
+use twoRivers\craft\Mcp\tools\NeoContentTools;
 use twoRivers\craft\Mcp\tools\NeoSchemaTools;
 use twoRivers\craft\Mcp\tools\SiteTools;
 use twoRivers\craft\Mcp\tools\SystemTools;
@@ -317,6 +318,11 @@ final class ToolRegistry {
         // Add Neo schema tools if Neo is installed
         if (NeoSchemaTools::isAvailable()) {
             $tools[] = NeoSchemaTools::class;
+        }
+
+        // Add Neo content write tools if Neo is installed
+        if (NeoContentTools::isAvailable()) {
+            $tools[] = NeoContentTools::class;
         }
 
         // Use addCoreTools which bypasses source validation
