@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\models;
+namespace twoRivers\craft\Mcp\models;
 
-use stimmt\craft\Mcp\enums\ResourceCategory;
+use twoRivers\craft\Mcp\enums\ResourceCategory;
 
 /**
  * Value object representing an MCP resource definition with metadata.

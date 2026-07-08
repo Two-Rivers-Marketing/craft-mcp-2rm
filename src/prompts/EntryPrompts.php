@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\prompts;
+namespace twoRivers\craft\Mcp\prompts;
 
 use Craft;
 use craft\elements\Entry;
@@ -12,12 +12,12 @@ use craft\services\Entries;
 use Mcp\Capability\Attribute\CompletionProvider;
 use Mcp\Capability\Attribute\McpPrompt;
 use Mcp\Exception\PromptGetException;
-use stimmt\craft\Mcp\attributes\McpPromptMeta;
-use stimmt\craft\Mcp\completions\EntryTypeHandleProvider;
-use stimmt\craft\Mcp\completions\SectionHandleProvider;
-use stimmt\craft\Mcp\enums\PromptCategory;
-use stimmt\craft\Mcp\services\SchemaHelper;
-use stimmt\craft\Mcp\support\SafePromptExecution;
+use twoRivers\craft\Mcp\attributes\McpPromptMeta;
+use twoRivers\craft\Mcp\completions\EntryTypeHandleProvider;
+use twoRivers\craft\Mcp\completions\SectionHandleProvider;
+use twoRivers\craft\Mcp\enums\PromptCategory;
+use twoRivers\craft\Mcp\services\SchemaHelper;
+use twoRivers\craft\Mcp\support\SafePromptExecution;
 
 /**
  * MCP prompts for working with Craft CMS entries.

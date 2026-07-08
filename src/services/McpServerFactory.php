@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\services;
+namespace twoRivers\craft\Mcp\services;
 
 use Craft;
 use Mcp\Server;
@@ -10,10 +10,10 @@ use Mcp\Server\Builder;
 use Mcp\Server\Transport\StdioTransport;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
-use stimmt\craft\Mcp\Mcp;
-use stimmt\craft\Mcp\models\ResourceDefinition;
-use stimmt\craft\Mcp\support\FileLogger;
-use stimmt\craft\Mcp\support\Psr11ContainerAdapter;
+use twoRivers\craft\Mcp\Mcp;
+use twoRivers\craft\Mcp\models\ResourceDefinition;
+use twoRivers\craft\Mcp\support\FileLogger;
+use twoRivers\craft\Mcp\support\Psr11ContainerAdapter;
 
 /**
  * Factory for creating MCP Server instances.

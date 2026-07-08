@@ -25,8 +25,8 @@ namespace myplugin;
 
 use Craft;
 use craft\base\Plugin;
-use stimmt\craft\Mcp\Mcp as McpPlugin;
-use stimmt\craft\Mcp\events\RegisterToolsEvent;
+use twoRivers\craft\Mcp\Mcp as McpPlugin;
+use twoRivers\craft\Mcp\events\RegisterToolsEvent;
 use yii\base\Event;
 
 class MyPlugin extends Plugin
@@ -72,8 +72,8 @@ namespace modules\mymodule;
 
 use Craft;
 use yii\base\Module;
-use stimmt\craft\Mcp\Mcp as McpPlugin;
-use stimmt\craft\Mcp\events\RegisterToolsEvent;
+use twoRivers\craft\Mcp\Mcp as McpPlugin;
+use twoRivers\craft\Mcp\events\RegisterToolsEvent;
 use yii\base\Event;
 
 class MyModule extends Module
@@ -189,8 +189,8 @@ Beyond the basic `#[McpTool]` attribute, you can add metadata to your tools usin
 <?php
 
 use Mcp\Capability\Attribute\McpTool;
-use stimmt\craft\Mcp\attributes\McpToolMeta;
-use stimmt\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\attributes\McpToolMeta;
+use twoRivers\craft\Mcp\enums\ToolCategory;
 
 class MyPluginTools
 {
@@ -286,7 +286,7 @@ For classes where all tools share a common availability condition, implement the
 ```php
 <?php
 
-use stimmt\craft\Mcp\contracts\ConditionalToolProvider;
+use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 
 class CommerceTools implements ConditionalToolProvider
 {
@@ -543,8 +543,8 @@ Listen to the `EVENT_REGISTER_PROMPTS` event to register prompt classes:
 ```php
 <?php
 
-use stimmt\craft\Mcp\Mcp as McpPlugin;
-use stimmt\craft\Mcp\events\RegisterPromptsEvent;
+use twoRivers\craft\Mcp\Mcp as McpPlugin;
+use twoRivers\craft\Mcp\events\RegisterPromptsEvent;
 use yii\base\Event;
 
 Event::on(
@@ -568,8 +568,8 @@ declare(strict_types=1);
 namespace myplugin\mcp\prompts;
 
 use Mcp\Capability\Attribute\McpPrompt;
-use stimmt\craft\Mcp\attributes\McpPromptMeta;
-use stimmt\craft\Mcp\enums\PromptCategory;
+use twoRivers\craft\Mcp\attributes\McpPromptMeta;
+use twoRivers\craft\Mcp\enums\PromptCategory;
 
 class MyPluginPrompts
 {
@@ -629,8 +629,8 @@ Listen to the `EVENT_REGISTER_RESOURCES` event:
 ```php
 <?php
 
-use stimmt\craft\Mcp\Mcp as McpPlugin;
-use stimmt\craft\Mcp\events\RegisterResourcesEvent;
+use twoRivers\craft\Mcp\Mcp as McpPlugin;
+use twoRivers\craft\Mcp\events\RegisterResourcesEvent;
 use yii\base\Event;
 
 Event::on(
@@ -654,8 +654,8 @@ declare(strict_types=1);
 namespace myplugin\mcp\resources;
 
 use Mcp\Capability\Attribute\McpResource;
-use stimmt\craft\Mcp\attributes\McpResourceMeta;
-use stimmt\craft\Mcp\enums\ResourceCategory;
+use twoRivers\craft\Mcp\attributes\McpResourceMeta;
+use twoRivers\craft\Mcp\enums\ResourceCategory;
 
 class MyPluginResources
 {

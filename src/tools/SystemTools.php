@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\tools;
+namespace twoRivers\craft\Mcp\tools;
 
 use Craft;
 use craft\console\controllers\HelpController;
@@ -12,13 +12,13 @@ use craft\models\Section;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\Content\TextContent;
 use Mcp\Server\RequestContext;
-use stimmt\craft\Mcp\attributes\McpToolMeta;
-use stimmt\craft\Mcp\enums\ResponseFormat;
-use stimmt\craft\Mcp\enums\ToolCategory;
-use stimmt\craft\Mcp\support\LogEntry;
-use stimmt\craft\Mcp\support\LogFormatter;
-use stimmt\craft\Mcp\support\LogParser;
-use stimmt\craft\Mcp\support\SafeExecution;
+use twoRivers\craft\Mcp\attributes\McpToolMeta;
+use twoRivers\craft\Mcp\enums\ResponseFormat;
+use twoRivers\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\support\LogEntry;
+use twoRivers\craft\Mcp\support\LogFormatter;
+use twoRivers\craft\Mcp\support\LogParser;
+use twoRivers\craft\Mcp\support\SafeExecution;
 
 /**
  * System-related MCP tools for Craft CMS.

@@ -49,12 +49,12 @@
     },
     "autoload": {
         "psr-4": {
-            "stimmt\\craft\\Mcp\\": "src/"
+            "twoRivers\\craft\\Mcp\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "stimmt\\craft\\Mcp\\Tests\\": "tests/"
+            "twoRivers\\craft\\Mcp\\Tests\\": "tests/"
         }
     },
     "extra": {
@@ -62,7 +62,7 @@
         "name": "Craft MCP",
         "developer": "Stimmt Digital",
         "documentationUrl": "https://github.com/stimmtdigital/craft-mcp",
-        "class": "stimmt\\craft\\Mcp\\Mcp"
+        "class": "twoRivers\\craft\\Mcp\\Mcp"
     },
     "bin": ["bin/mcp-server"],
     "config": {
@@ -71,6 +71,11 @@
             "yiisoft/yii2-composer": true,
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "policy": {
+            "advisories": {
+                "block": false
+            }
         }
     },
     "scripts": {

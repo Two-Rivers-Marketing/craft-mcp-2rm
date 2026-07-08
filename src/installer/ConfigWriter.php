@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\installer;
+namespace twoRivers\craft\Mcp\installer;
 
 use craft\helpers\FileHelper;
 use craft\helpers\Json;

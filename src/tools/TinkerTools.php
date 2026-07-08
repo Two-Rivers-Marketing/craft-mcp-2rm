@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\tools;
+namespace twoRivers\craft\Mcp\tools;
 
 use Craft;
 use Mcp\Capability\Attribute\CompletionProvider;
@@ -14,12 +14,12 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Psy\CodeCleaner;
 use Psy\Exception\ParseErrorException;
-use stimmt\craft\Mcp\attributes\McpToolMeta;
-use stimmt\craft\Mcp\enums\OutputMode;
-use stimmt\craft\Mcp\enums\ToolCategory;
-use stimmt\craft\Mcp\support\Ansi;
-use stimmt\craft\Mcp\support\MutexGuard;
-use stimmt\craft\Mcp\support\SafeExecution;
+use twoRivers\craft\Mcp\attributes\McpToolMeta;
+use twoRivers\craft\Mcp\enums\OutputMode;
+use twoRivers\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\support\Ansi;
+use twoRivers\craft\Mcp\support\MutexGuard;
+use twoRivers\craft\Mcp\support\SafeExecution;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\CliDumper;
 use Throwable;

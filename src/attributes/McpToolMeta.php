@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\attributes;
+namespace twoRivers\craft\Mcp\attributes;
 
 use Attribute;
-use stimmt\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\enums\ToolCategory;
 
 /**
  * Additional metadata for MCP tools.

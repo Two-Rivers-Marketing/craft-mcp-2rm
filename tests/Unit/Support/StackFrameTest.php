@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use stimmt\craft\Mcp\support\StackFrame;
+use twoRivers\craft\Mcp\support\StackFrame;
 
 describe('StackFrame', function () {
     it('creates from constructor', function () {

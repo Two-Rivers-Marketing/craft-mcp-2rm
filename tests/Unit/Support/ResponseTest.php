@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use stimmt\craft\Mcp\support\Response;
+use twoRivers\craft\Mcp\support\Response;
 
 describe('Response::success()', function () {
     it('returns success true with empty data', function () {

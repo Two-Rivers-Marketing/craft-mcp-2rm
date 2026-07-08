@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Mcp\Capability\Attribute\McpTool;
-use stimmt\craft\Mcp\Mcp;
-use stimmt\craft\Mcp\tools\BackupTools;
+use twoRivers\craft\Mcp\Mcp;
+use twoRivers\craft\Mcp\tools\BackupTools;
 
 describe('BackupTools class structure', function () {
     it('has list_backups tool with McpTool attribute', function () {

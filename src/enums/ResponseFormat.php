@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\enums;
+namespace twoRivers\craft\Mcp\enums;
 
 /**
  * Generic response format for MCP tools.

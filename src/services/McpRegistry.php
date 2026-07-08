@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\services;
+namespace twoRivers\craft\Mcp\services;
 
 /**
  * Unified facade for all MCP registries.

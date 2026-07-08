@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use stimmt\craft\Mcp\support\LogEntry;
-use stimmt\craft\Mcp\support\LogParser;
+use twoRivers\craft\Mcp\support\LogEntry;
+use twoRivers\craft\Mcp\support\LogParser;
 
 beforeEach(function () {
     $this->tempDir = sys_get_temp_dir() . '/craft-mcp-log-tests';

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\installer\contracts;
+namespace twoRivers\craft\Mcp\installer\contracts;
 
 /**
  * Contract for MCP client configuration generators.

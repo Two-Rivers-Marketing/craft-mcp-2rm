@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use stimmt\craft\Mcp\support\FileHelper;
+use twoRivers\craft\Mcp\support\FileHelper;
 
 beforeEach(function () {
     $this->tempDir = sys_get_temp_dir() . '/craft-mcp-tests';

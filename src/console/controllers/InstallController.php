@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\console\controllers;
+namespace twoRivers\craft\Mcp\console\controllers;
 
 use Craft;
 use craft\console\Controller;
@@ -10,14 +10,14 @@ use craft\helpers\Console;
 use Exception;
 use JsonException;
 use Override;
-use stimmt\craft\Mcp\installer\clients\ClaudeCodeClient;
-use stimmt\craft\Mcp\installer\clients\ClaudeDesktopClient;
-use stimmt\craft\Mcp\installer\clients\CursorClient;
-use stimmt\craft\Mcp\installer\ConfigWriter;
-use stimmt\craft\Mcp\installer\contracts\McpClientInterface;
-use stimmt\craft\Mcp\installer\EnvironmentDetector;
-use stimmt\craft\Mcp\installer\ProjectRootResolver;
-use stimmt\craft\Mcp\installer\WriteResult;
+use twoRivers\craft\Mcp\installer\clients\ClaudeCodeClient;
+use twoRivers\craft\Mcp\installer\clients\ClaudeDesktopClient;
+use twoRivers\craft\Mcp\installer\clients\CursorClient;
+use twoRivers\craft\Mcp\installer\ConfigWriter;
+use twoRivers\craft\Mcp\installer\contracts\McpClientInterface;
+use twoRivers\craft\Mcp\installer\EnvironmentDetector;
+use twoRivers\craft\Mcp\installer\ProjectRootResolver;
+use twoRivers\craft\Mcp\installer\WriteResult;
 use yii\console\ExitCode;
 
 /**

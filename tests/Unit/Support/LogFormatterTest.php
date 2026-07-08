@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Mcp\Schema\Content\TextContent;
-use stimmt\craft\Mcp\support\LogEntry;
-use stimmt\craft\Mcp\support\LogFormatter;
-use stimmt\craft\Mcp\support\StackFrame;
+use twoRivers\craft\Mcp\support\LogEntry;
+use twoRivers\craft\Mcp\support\LogFormatter;
+use twoRivers\craft\Mcp\support\StackFrame;
 
 describe('LogFormatter', function () {
     describe('format()', function () {

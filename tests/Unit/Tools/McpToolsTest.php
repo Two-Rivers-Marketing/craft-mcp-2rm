@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Mcp\Capability\Attribute\McpTool;
-use stimmt\craft\Mcp\tools\McpTools;
+use twoRivers\craft\Mcp\tools\McpTools;
 
 describe('McpTools class structure', function () {
     it('has get_mcp_info tool with McpTool attribute', function () {

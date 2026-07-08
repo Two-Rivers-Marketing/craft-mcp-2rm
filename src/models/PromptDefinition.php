@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\models;
+namespace twoRivers\craft\Mcp\models;
 
-use stimmt\craft\Mcp\enums\PromptCategory;
+use twoRivers\craft\Mcp\enums\PromptCategory;
 
 /**
  * Value object representing an MCP prompt definition with metadata.

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\events;
+namespace twoRivers\craft\Mcp\events;
 
 use InvalidArgumentException;
 use Mcp\Capability\Attribute\McpTool;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
-use stimmt\craft\Mcp\attributes\McpToolMeta;
-use stimmt\craft\Mcp\contracts\ConditionalToolProvider;
-use stimmt\craft\Mcp\enums\ToolCategory;
-use stimmt\craft\Mcp\models\ToolDefinition;
+use twoRivers\craft\Mcp\attributes\McpToolMeta;
+use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
+use twoRivers\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\models\ToolDefinition;
 use yii\base\Event;
 
 /**
@@ -21,9 +21,9 @@ use yii\base\Event;
  * Example usage in another plugin:
  *
  * ```php
- * use stimmt\craft\Mcp\Mcp;
- * use stimmt\craft\Mcp\events\RegisterToolsEvent;
- * use stimmt\craft\Mcp\attributes\McpToolMeta;
+ * use twoRivers\craft\Mcp\Mcp;
+ * use twoRivers\craft\Mcp\events\RegisterToolsEvent;
+ * use twoRivers\craft\Mcp\attributes\McpToolMeta;
  * use yii\base\Event;
  *
  * Event::on(

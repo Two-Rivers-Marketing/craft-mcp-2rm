@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\services;
+namespace twoRivers\craft\Mcp\services;
 
 use Craft;
-use stimmt\craft\Mcp\events\RegisterPromptsEvent;
-use stimmt\craft\Mcp\Mcp;
-use stimmt\craft\Mcp\models\PromptDefinition;
-use stimmt\craft\Mcp\prompts\ContentPrompts;
-use stimmt\craft\Mcp\prompts\EntryPrompts;
-use stimmt\craft\Mcp\prompts\SchemaPrompts;
+use twoRivers\craft\Mcp\events\RegisterPromptsEvent;
+use twoRivers\craft\Mcp\Mcp;
+use twoRivers\craft\Mcp\models\PromptDefinition;
+use twoRivers\craft\Mcp\prompts\ContentPrompts;
+use twoRivers\craft\Mcp\prompts\EntryPrompts;
+use twoRivers\craft\Mcp\prompts\SchemaPrompts;
 
 /**
  * Registry for MCP prompts with isolation and namespacing support.

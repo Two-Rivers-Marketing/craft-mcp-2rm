@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\installer\clients;
+namespace twoRivers\craft\Mcp\installer\clients;
 
 /**
  * MCP client configuration for Cursor.

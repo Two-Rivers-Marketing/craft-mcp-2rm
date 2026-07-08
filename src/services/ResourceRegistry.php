@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\services;
+namespace twoRivers\craft\Mcp\services;
 
 use Craft;
-use stimmt\craft\Mcp\events\RegisterResourcesEvent;
-use stimmt\craft\Mcp\Mcp;
-use stimmt\craft\Mcp\models\ResourceDefinition;
-use stimmt\craft\Mcp\resources\ConfigResources;
-use stimmt\craft\Mcp\resources\EntryResources;
-use stimmt\craft\Mcp\resources\SchemaResources;
+use twoRivers\craft\Mcp\events\RegisterResourcesEvent;
+use twoRivers\craft\Mcp\Mcp;
+use twoRivers\craft\Mcp\models\ResourceDefinition;
+use twoRivers\craft\Mcp\resources\ConfigResources;
+use twoRivers\craft\Mcp\resources\EntryResources;
+use twoRivers\craft\Mcp\resources\SchemaResources;
 
 /**
  * Registry for MCP resources with isolation and namespacing support.

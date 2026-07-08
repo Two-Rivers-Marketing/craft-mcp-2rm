@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Mcp\Capability\Attribute\McpTool;
-use stimmt\craft\Mcp\tools\SiteTools;
+use twoRivers\craft\Mcp\tools\SiteTools;
 
 describe('SiteTools class structure', function () {
     it('has list_sites tool with McpTool attribute', function () {

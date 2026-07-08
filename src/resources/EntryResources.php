@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\resources;
+namespace twoRivers\craft\Mcp\resources;
 
 use Craft;
 use craft\base\ElementInterface;
@@ -16,10 +16,10 @@ use DateTime;
 use Mcp\Capability\Attribute\CompletionProvider;
 use Mcp\Capability\Attribute\McpResourceTemplate;
 use Mcp\Exception\ResourceReadException;
-use stimmt\craft\Mcp\attributes\McpResourceMeta;
-use stimmt\craft\Mcp\completions\SectionHandleProvider;
-use stimmt\craft\Mcp\enums\ResourceCategory;
-use stimmt\craft\Mcp\support\SafeResourceExecution;
+use twoRivers\craft\Mcp\attributes\McpResourceMeta;
+use twoRivers\craft\Mcp\completions\SectionHandleProvider;
+use twoRivers\craft\Mcp\enums\ResourceCategory;
+use twoRivers\craft\Mcp\support\SafeResourceExecution;
 
 /**
  * MCP resources for Craft CMS entry content.

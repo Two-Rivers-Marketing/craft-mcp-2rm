@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\support;
+namespace twoRivers\craft\Mcp\support;
 
 use Craft;
 use ReflectionException;

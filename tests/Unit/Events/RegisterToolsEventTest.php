@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use stimmt\craft\Mcp\events\RegisterToolsEvent;
-use stimmt\craft\Mcp\Tests\Fixtures\AbstractToolClass;
-use stimmt\craft\Mcp\Tests\Fixtures\InvalidToolClass;
-use stimmt\craft\Mcp\Tests\Fixtures\ValidToolClass;
+use twoRivers\craft\Mcp\events\RegisterToolsEvent;
+use twoRivers\craft\Mcp\Tests\Fixtures\AbstractToolClass;
+use twoRivers\craft\Mcp\Tests\Fixtures\InvalidToolClass;
+use twoRivers\craft\Mcp\Tests\Fixtures\ValidToolClass;
 
 beforeEach(function () {
     $this->event = new RegisterToolsEvent();

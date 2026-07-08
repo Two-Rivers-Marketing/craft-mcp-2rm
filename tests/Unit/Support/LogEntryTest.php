@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use stimmt\craft\Mcp\support\LogEntry;
-use stimmt\craft\Mcp\support\StackFrame;
+use twoRivers\craft\Mcp\support\LogEntry;
+use twoRivers\craft\Mcp\support\StackFrame;
 
 describe('LogEntry', function () {
     it('creates from constructor', function () {

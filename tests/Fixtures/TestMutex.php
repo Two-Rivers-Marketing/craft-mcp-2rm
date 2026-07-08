@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\Tests\Fixtures;
+namespace twoRivers\craft\Mcp\Tests\Fixtures;
 
 use yii\mutex\Mutex;
 

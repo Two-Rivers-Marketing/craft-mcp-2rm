@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\models;
+namespace twoRivers\craft\Mcp\models;
 
-use stimmt\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\enums\ToolCategory;
 
 /**
  * Value object representing an MCP tool definition with metadata.

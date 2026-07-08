@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\installer\clients;
+namespace twoRivers\craft\Mcp\installer\clients;
 
 use InvalidArgumentException;
-use stimmt\craft\Mcp\installer\contracts\McpClientInterface;
-use stimmt\craft\Mcp\installer\EnvironmentDetector;
+use twoRivers\craft\Mcp\installer\contracts\McpClientInterface;
+use twoRivers\craft\Mcp\installer\EnvironmentDetector;
 
 /**
  * Base class for MCP client implementations.

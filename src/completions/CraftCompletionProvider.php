@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\completions;
+namespace twoRivers\craft\Mcp\completions;
 
 use Mcp\Capability\Completion\ProviderInterface;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\resources;
+namespace twoRivers\craft\Mcp\resources;
 
 use Craft;
 use craft\config\GeneralConfig;
@@ -16,8 +16,8 @@ use craft\services\Sites;
 use craft\services\Volumes;
 use Mcp\Capability\Attribute\McpResource;
 use ReflectionClass;
-use stimmt\craft\Mcp\attributes\McpResourceMeta;
-use stimmt\craft\Mcp\enums\ResourceCategory;
+use twoRivers\craft\Mcp\attributes\McpResourceMeta;
+use twoRivers\craft\Mcp\enums\ResourceCategory;
 
 /**
  * MCP resources for Craft CMS configuration information.

@@ -26,7 +26,7 @@ parameters:
         # Commerce is optional - tools check availability at runtime
         - '#craft\\commerce\\#'
         # Missing class reference (if class doesn't exist)
-        - '#Class stimmt\\craft\\Mcp\\tools\\SchemaTools not found#'
+        - '#Class twoRivers\\craft\\Mcp\\tools\\SchemaTools not found#'
         # Dead catch - ReflectionException
         - '#Dead catch#'
         # array_values on list is intentional for re-indexing

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Mcp\Capability\Attribute\McpTool;
-use stimmt\craft\Mcp\tools\CommerceTools;
+use twoRivers\craft\Mcp\tools\CommerceTools;
 
 describe('CommerceTools class structure', function () {
     it('has isAvailable static method', function () {

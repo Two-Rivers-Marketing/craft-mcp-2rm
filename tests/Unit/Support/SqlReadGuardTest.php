@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Mcp\Exception\ToolCallException;
-use stimmt\craft\Mcp\support\SqlReadGuard;
+use twoRivers\craft\Mcp\support\SqlReadGuard;
 
 describe('SqlReadGuard::assertSelectOnly()', function () {
     it('returns the trimmed query for a plain SELECT', function () {

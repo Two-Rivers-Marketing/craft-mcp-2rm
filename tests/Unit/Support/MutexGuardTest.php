@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../Fixtures/CraftStub.php';
 
-use stimmt\craft\Mcp\support\MutexGuard;
-use stimmt\craft\Mcp\Tests\Fixtures\TestMutex;
+use twoRivers\craft\Mcp\support\MutexGuard;
+use twoRivers\craft\Mcp\Tests\Fixtures\TestMutex;
 
 beforeEach(function () {
     $this->originalApp = Craft::$app;

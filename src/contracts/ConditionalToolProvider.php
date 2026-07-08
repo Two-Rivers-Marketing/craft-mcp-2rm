@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\contracts;
+namespace twoRivers\craft\Mcp\contracts;
 
 /**
  * Interface for tool classes that are conditionally available.

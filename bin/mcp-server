@@ -64,10 +64,10 @@ define('CRAFT_ENVIRONMENT', getenv('CRAFT_ENVIRONMENT') ?: 'production');
 /** @var craft\console\Application $app */
 $app = require $basePath . '/vendor/craftcms/cms/bootstrap/console.php';
 
-use stimmt\craft\Mcp\Mcp;
-use stimmt\craft\Mcp\services\McpRegistry;
-use stimmt\craft\Mcp\services\McpServerFactory;
-use stimmt\craft\Mcp\support\SignalHandler;
+use twoRivers\craft\Mcp\Mcp;
+use twoRivers\craft\Mcp\services\McpRegistry;
+use twoRivers\craft\Mcp\services\McpServerFactory;
+use twoRivers\craft\Mcp\support\SignalHandler;
 
 // Validate plugin is available and enabled
 $plugin = Mcp::getInstance();
@@ -110,7 +110,7 @@ try {
     // finds it via Psr11ContainerAdapter::has() instead of falling back
     // to bare instantiation (which would skip DI and use NullLogger).
     Craft::$container->setSingleton(\Psr\Log\LoggerInterface::class, fn() => $logger);
-    Craft::$container->set(\stimmt\craft\Mcp\tools\TinkerTools::class);
+    Craft::$container->set(\twoRivers\craft\Mcp\tools\TinkerTools::class);
 
     $factory = new McpServerFactory(logger: $logger);
     $server = $factory->create();

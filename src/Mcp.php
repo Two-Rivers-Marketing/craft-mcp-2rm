@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp;
+namespace twoRivers\craft\Mcp;
 
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\services\Path;
 use Override;
-use stimmt\craft\Mcp\events\RegisterPromptsEvent;
-use stimmt\craft\Mcp\events\RegisterResourcesEvent;
-use stimmt\craft\Mcp\events\RegisterToolsEvent;
-use stimmt\craft\Mcp\models\Settings;
-use stimmt\craft\Mcp\services\McpServerFactory;
-use stimmt\craft\Mcp\services\PromptRegistry;
-use stimmt\craft\Mcp\services\ResourceRegistry;
-use stimmt\craft\Mcp\services\ToolRegistry;
+use twoRivers\craft\Mcp\events\RegisterPromptsEvent;
+use twoRivers\craft\Mcp\events\RegisterResourcesEvent;
+use twoRivers\craft\Mcp\events\RegisterToolsEvent;
+use twoRivers\craft\Mcp\models\Settings;
+use twoRivers\craft\Mcp\services\McpServerFactory;
+use twoRivers\craft\Mcp\services\PromptRegistry;
+use twoRivers\craft\Mcp\services\ResourceRegistry;
+use twoRivers\craft\Mcp\services\ToolRegistry;
 
 /**
  * Craft MCP Plugin

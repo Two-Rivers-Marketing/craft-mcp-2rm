@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\prompts;
+namespace twoRivers\craft\Mcp\prompts;
 
 use Craft;
 use craft\base\FieldInterface;
@@ -15,9 +15,9 @@ use craft\services\Entries;
 use craft\services\Fields;
 use craft\services\Volumes;
 use Mcp\Capability\Attribute\McpPrompt;
-use stimmt\craft\Mcp\attributes\McpPromptMeta;
-use stimmt\craft\Mcp\enums\PromptCategory;
-use stimmt\craft\Mcp\services\SchemaHelper;
+use twoRivers\craft\Mcp\attributes\McpPromptMeta;
+use twoRivers\craft\Mcp\enums\PromptCategory;
+use twoRivers\craft\Mcp\services\SchemaHelper;
 
 /**
  * MCP prompts for content analysis and management.

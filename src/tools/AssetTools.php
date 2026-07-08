@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\tools;
+namespace twoRivers\craft\Mcp\tools;
 
 use Craft;
 use craft\elements\Asset;
@@ -11,10 +11,10 @@ use craft\services\Assets;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
-use stimmt\craft\Mcp\attributes\McpToolMeta;
-use stimmt\craft\Mcp\enums\ToolCategory;
-use stimmt\craft\Mcp\support\SafeExecution;
-use stimmt\craft\Mcp\support\Serializer;
+use twoRivers\craft\Mcp\attributes\McpToolMeta;
+use twoRivers\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\support\SafeExecution;
+use twoRivers\craft\Mcp\support\Serializer;
 
 /**
  * Asset-related MCP tools for Craft CMS.

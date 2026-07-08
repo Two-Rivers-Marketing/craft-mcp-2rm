@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\services;
+namespace twoRivers\craft\Mcp\services;
 
 use Craft;
-use stimmt\craft\Mcp\events\RegisterToolsEvent;
-use stimmt\craft\Mcp\Mcp;
-use stimmt\craft\Mcp\models\ToolDefinition;
-use stimmt\craft\Mcp\tools\AssetTools;
-use stimmt\craft\Mcp\tools\BackupTools;
-use stimmt\craft\Mcp\tools\CategoryTools;
-use stimmt\craft\Mcp\tools\CommerceTools;
-use stimmt\craft\Mcp\tools\CraftTools;
-use stimmt\craft\Mcp\tools\DatabaseTools;
-use stimmt\craft\Mcp\tools\DebugTools;
-use stimmt\craft\Mcp\tools\EntryTools;
-use stimmt\craft\Mcp\tools\GlobalSetTools;
-use stimmt\craft\Mcp\tools\GraphqlTools;
-use stimmt\craft\Mcp\tools\McpTools;
-use stimmt\craft\Mcp\tools\SiteTools;
-use stimmt\craft\Mcp\tools\SystemTools;
-use stimmt\craft\Mcp\tools\TinkerTools;
-use stimmt\craft\Mcp\tools\UserTools;
+use twoRivers\craft\Mcp\events\RegisterToolsEvent;
+use twoRivers\craft\Mcp\Mcp;
+use twoRivers\craft\Mcp\models\ToolDefinition;
+use twoRivers\craft\Mcp\tools\AssetTools;
+use twoRivers\craft\Mcp\tools\BackupTools;
+use twoRivers\craft\Mcp\tools\CategoryTools;
+use twoRivers\craft\Mcp\tools\CommerceTools;
+use twoRivers\craft\Mcp\tools\CraftTools;
+use twoRivers\craft\Mcp\tools\DatabaseTools;
+use twoRivers\craft\Mcp\tools\DebugTools;
+use twoRivers\craft\Mcp\tools\EntryTools;
+use twoRivers\craft\Mcp\tools\GlobalSetTools;
+use twoRivers\craft\Mcp\tools\GraphqlTools;
+use twoRivers\craft\Mcp\tools\McpTools;
+use twoRivers\craft\Mcp\tools\SiteTools;
+use twoRivers\craft\Mcp\tools\SystemTools;
+use twoRivers\craft\Mcp\tools\TinkerTools;
+use twoRivers\craft\Mcp\tools\UserTools;
 
 /**
  * Registry for MCP tools with isolation and namespacing support.

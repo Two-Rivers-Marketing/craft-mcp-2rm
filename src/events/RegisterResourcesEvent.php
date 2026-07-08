@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\events;
+namespace twoRivers\craft\Mcp\events;
 
 use InvalidArgumentException;
 use Mcp\Capability\Attribute\CompletionProvider;
@@ -11,10 +11,10 @@ use Mcp\Capability\Attribute\McpResourceTemplate;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
-use stimmt\craft\Mcp\attributes\McpResourceMeta;
-use stimmt\craft\Mcp\contracts\ConditionalProvider;
-use stimmt\craft\Mcp\enums\ResourceCategory;
-use stimmt\craft\Mcp\models\ResourceDefinition;
+use twoRivers\craft\Mcp\attributes\McpResourceMeta;
+use twoRivers\craft\Mcp\contracts\ConditionalProvider;
+use twoRivers\craft\Mcp\enums\ResourceCategory;
+use twoRivers\craft\Mcp\models\ResourceDefinition;
 use yii\base\Event;
 
 /**
@@ -25,8 +25,8 @@ use yii\base\Event;
  * Example usage in another plugin:
  *
  * ```php
- * use stimmt\craft\Mcp\Mcp;
- * use stimmt\craft\Mcp\events\RegisterResourcesEvent;
+ * use twoRivers\craft\Mcp\Mcp;
+ * use twoRivers\craft\Mcp\events\RegisterResourcesEvent;
  * use yii\base\Event;
  *
  * Event::on(

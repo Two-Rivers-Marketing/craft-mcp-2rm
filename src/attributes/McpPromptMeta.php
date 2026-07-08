@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\attributes;
+namespace twoRivers\craft\Mcp\attributes;
 
 use Attribute;
-use stimmt\craft\Mcp\enums\PromptCategory;
+use twoRivers\craft\Mcp\enums\PromptCategory;
 
 /**
  * Additional metadata for MCP prompts.

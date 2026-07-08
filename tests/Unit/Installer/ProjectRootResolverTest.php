@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use stimmt\craft\Mcp\installer\ProjectRootResolver;
+use twoRivers\craft\Mcp\installer\ProjectRootResolver;
 
 beforeEach(function () {
     $this->tempDir = sys_get_temp_dir() . '/craft-mcp-resolver-tests-' . uniqid();

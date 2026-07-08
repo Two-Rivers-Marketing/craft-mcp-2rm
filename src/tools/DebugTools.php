@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\tools;
+namespace twoRivers\craft\Mcp\tools;
 
 use Closure;
 use Craft;
@@ -12,11 +12,11 @@ use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
 use ReflectionClass;
 use ReflectionFunction;
-use stimmt\craft\Mcp\attributes\McpToolMeta;
-use stimmt\craft\Mcp\enums\ToolCategory;
-use stimmt\craft\Mcp\support\FileHelper;
-use stimmt\craft\Mcp\support\SafeExecution;
-use stimmt\craft\Mcp\support\SqlReadGuard;
+use twoRivers\craft\Mcp\attributes\McpToolMeta;
+use twoRivers\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\support\FileHelper;
+use twoRivers\craft\Mcp\support\SafeExecution;
+use twoRivers\craft\Mcp\support\SqlReadGuard;
 use Throwable;
 use yii\base\Event;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\contracts;
+namespace twoRivers\craft\Mcp\contracts;
 
 /**
  * Interface for provider classes that are conditionally available.

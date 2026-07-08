@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\attributes;
+namespace twoRivers\craft\Mcp\attributes;
 
 use Attribute;
-use stimmt\craft\Mcp\enums\ResourceCategory;
+use twoRivers\craft\Mcp\enums\ResourceCategory;
 
 /**
  * Additional metadata for MCP resources.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\completions;
+namespace twoRivers\craft\Mcp\completions;
 
 use craft\models\EntryType;
-use stimmt\craft\Mcp\services\SchemaHelper;
+use twoRivers\craft\Mcp\services\SchemaHelper;
 
 /**
  * Provides completion values for entry type handles.

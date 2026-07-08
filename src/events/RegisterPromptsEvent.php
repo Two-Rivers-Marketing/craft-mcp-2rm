@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace stimmt\craft\Mcp\events;
+namespace twoRivers\craft\Mcp\events;
 
 use InvalidArgumentException;
 use Mcp\Capability\Attribute\CompletionProvider;
@@ -10,10 +10,10 @@ use Mcp\Capability\Attribute\McpPrompt;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
-use stimmt\craft\Mcp\attributes\McpPromptMeta;
-use stimmt\craft\Mcp\contracts\ConditionalProvider;
-use stimmt\craft\Mcp\enums\PromptCategory;
-use stimmt\craft\Mcp\models\PromptDefinition;
+use twoRivers\craft\Mcp\attributes\McpPromptMeta;
+use twoRivers\craft\Mcp\contracts\ConditionalProvider;
+use twoRivers\craft\Mcp\enums\PromptCategory;
+use twoRivers\craft\Mcp\models\PromptDefinition;
 use yii\base\Event;
 
 /**
@@ -22,8 +22,8 @@ use yii\base\Event;
  * Example usage in another plugin:
  *
  * ```php
- * use stimmt\craft\Mcp\Mcp;
- * use stimmt\craft\Mcp\events\RegisterPromptsEvent;
+ * use twoRivers\craft\Mcp\Mcp;
+ * use twoRivers\craft\Mcp\events\RegisterPromptsEvent;
  * use yii\base\Event;
  *
  * Event::on(
