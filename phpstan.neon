@@ -27,6 +27,8 @@ parameters:
         - '#craft\\commerce\\#'
         # Neo is optional - tools check availability at runtime
         - '#benf\\neo\\#'
+        # Freeform is optional - tools check availability at runtime
+        - '#Solspace\\Freeform\\#'
         # Missing class reference (if class doesn't exist)
         - '#Class twoRivers\\craft\\Mcp\\tools\\SchemaTools not found#'
         # Dead catch - ReflectionException

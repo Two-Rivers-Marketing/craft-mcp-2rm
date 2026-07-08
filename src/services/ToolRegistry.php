@@ -16,6 +16,7 @@ use twoRivers\craft\Mcp\tools\CraftTools;
 use twoRivers\craft\Mcp\tools\DatabaseTools;
 use twoRivers\craft\Mcp\tools\DebugTools;
 use twoRivers\craft\Mcp\tools\EntryTools;
+use twoRivers\craft\Mcp\tools\FreeformTools;
 use twoRivers\craft\Mcp\tools\GlobalSetTools;
 use twoRivers\craft\Mcp\tools\GraphqlTools;
 use twoRivers\craft\Mcp\tools\McpTools;
@@ -329,6 +330,11 @@ final class ToolRegistry {
         // Add Neo scaffolding tools (create_block_type) if Neo is installed
         if (NeoScaffoldTools::isAvailable()) {
             $tools[] = NeoScaffoldTools::class;
+        }
+
+        // Add Freeform tools if Freeform is installed
+        if (FreeformTools::isAvailable()) {
+            $tools[] = FreeformTools::class;
         }
 
         // Use addCoreTools which bypasses source validation
