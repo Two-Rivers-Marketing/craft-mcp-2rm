@@ -427,12 +427,351 @@ class NeoContentTools implements ConditionalToolProvider {
             ...array_slice($existing, $insertionIndex),
         ];
 
-        $owner->setFieldValue((string) $field->handle, $merged);
+        $this->persistBlocks($owner, $field, $merged);
+    }
+
+    /**
+     * Set the owner's Neo field to the given ordered block list and resave the
+     * owner so Neo rebuilds the field structure (levels + lft/rgt) from the
+     * ordered array. Shared by create/update/reorder/delete write paths.
+     *
+     * @param array<int, object> $blocks
+     * @throws ToolCallException
+     */
+    private function persistBlocks(ElementInterface $owner, NeoField $field, array $blocks): void {
+        $owner->setFieldValue((string) $field->handle, $blocks);
 
         if (!Craft::$app->getElements()->saveElement($owner)) {
             throw new ToolCallException(
                 'Failed to save Neo blocks: ' . json_encode($owner->getErrors()),
             );
         }
+    }
+
+    /**
+     * Update the field values of a single existing Neo block, addressed by its
+     * block ID (from a prior read). Only the given field handles are changed.
+     */
+    #[McpTool(
+        name: 'update_neo_block',
+        description: 'Update field values on a single existing Neo block, addressed by its block ID (from a prior read such as describe_content_builder). fields is a JSON object of fieldHandle => value pairs; ONLY those handles are changed, every other field and the block\'s position are left untouched. Field handles are validated against the block type\'s layout (a clear error lists the valid handles). Writes target the entry\'s canonical element so the change appears live. Pass dryRun: true to preview an old->new diff per changed field without saving.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
+    public function updateNeoBlock(
+        int $blockId,
+        string $fields,
+        bool $dryRun = false,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($blockId, $fields, $dryRun): array {
+            $this->assertNeoAvailable();
+
+            $ctx = $this->resolveBlockContext($blockId);
+            $newValues = NeoBlockPayload::decode($fields);
+
+            if ($newValues === []) {
+                throw new ToolCallException(
+                    'fields must include at least one fieldHandle => value pair to update.',
+                );
+            }
+
+            $blockType = $this->blockTypeOf($ctx['block']);
+            NeoBlockPayload::assertKnownHandles(
+                $newValues,
+                $this->allowedFieldHandles($blockType),
+                (string) ($blockType->handle ?? ''),
+            );
+
+            $oldValues = $this->readFieldValues($ctx['block'], array_keys($newValues));
+            $fieldDiff = NeoBlockPayload::fieldDiff($oldValues, $newValues);
+            $diff = [
+                'block' => [
+                    'id' => $ctx['blockId'],
+                    'type' => NeoBlockPayload::summarizeBlock($ctx['block'])['type'],
+                ],
+                'fields' => $fieldDiff,
+            ];
+
+            if ($dryRun) {
+                return Response::success([
+                    'dryRun' => true,
+                    'entryId' => $ctx['owner']->id,
+                    'fieldHandle' => $ctx['field']->handle,
+                    'blockId' => $ctx['blockId'],
+                    'diff' => $diff,
+                ]);
+            }
+
+            $this->applyFieldValues($ctx['block'], $newValues);
+            $this->persistBlocks($ctx['owner'], $ctx['field'], $ctx['existing']);
+
+            return Response::success([
+                'entryId' => $ctx['owner']->id,
+                'fieldHandle' => $ctx['field']->handle,
+                'blockId' => $ctx['blockId'],
+                'fieldsUpdated' => array_keys($fieldDiff['changed']),
+                'diff' => $diff,
+            ]);
+        });
+    }
+
+    /**
+     * Reorder the top-level Neo blocks of an entry, either by a full desired
+     * order or a single move instruction.
+     */
+    #[McpTool(
+        name: 'reorder_neo_blocks',
+        description: 'Reorder the blocks in an entry\'s Neo content builder field. Provide EXACTLY ONE of: order — a JSON array of top-level block IDs in the desired order, which must be a permutation of the current top-level IDs (an error lists any missing/unexpected); or move — a JSON object {"blockId": <id>, "position": <index|"before:<id>"|"after:<id>">} that moves one block within its sibling scope. Moving a block moves its whole subtree; a before:/after: reference inside the moved subtree is rejected. fieldHandle selects the Neo field when the entry has more than one. Writes target the entry\'s canonical element. Pass dryRun: true to preview the before/after order without saving.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
+    public function reorderNeoBlocks(
+        int $entryId,
+        ?string $fieldHandle = null,
+        ?string $order = null,
+        ?string $move = null,
+        bool $dryRun = false,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($entryId, $fieldHandle, $order, $move, $dryRun): array {
+            $this->assertNeoAvailable();
+
+            $owner = $this->resolveCanonicalOwner($entryId);
+            $field = $this->resolveBuilderField($entryId, $fieldHandle);
+
+            $existing = $this->existingBlocks($owner, (string) $field->handle);
+            $summaries = array_map(NeoBlockPayload::summarizeBlock(...), $existing);
+
+            $newOrder = $this->resolveReorder($summaries, $order, $move);
+            $afterSummaries = array_map(static fn (int $i): array => $summaries[$i], $newOrder);
+            $diff = NeoBlockTree::reorderDiff($summaries, $afterSummaries);
+
+            if ($dryRun) {
+                return Response::success([
+                    'dryRun' => true,
+                    'entryId' => $owner->id,
+                    'fieldHandle' => $field->handle,
+                    'diff' => $diff,
+                ]);
+            }
+
+            $reordered = array_map(static fn (int $i): object => $existing[$i], $newOrder);
+            $this->persistBlocks($owner, $field, $reordered);
+
+            return Response::success([
+                'entryId' => $owner->id,
+                'fieldHandle' => $field->handle,
+                'blocksReordered' => count($reordered),
+                'diff' => $diff,
+            ]);
+        });
+    }
+
+    /**
+     * Delete a single Neo block and all of its descendants, addressed by its
+     * block ID (from a prior read).
+     */
+    #[McpTool(
+        name: 'delete_neo_block',
+        description: 'Delete a single Neo block AND all of its descendants from an entry\'s content builder, addressed by its block ID (from a prior read such as describe_content_builder). Writes target the entry\'s canonical element so the change appears live. Pass dryRun: true to preview the flattened before/after block lists (and the removed subtree) without saving.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
+    public function deleteNeoBlock(
+        int $blockId,
+        bool $dryRun = false,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($blockId, $dryRun): array {
+            $this->assertNeoAvailable();
+
+            $ctx = $this->resolveBlockContext($blockId);
+            $start = $ctx['index'];
+            $end = NeoBlockTree::subtreeEnd($ctx['summaries'], $start);
+            $diff = NeoBlockTree::deleteDiff($ctx['summaries'], $start, $end);
+
+            if ($dryRun) {
+                return Response::success([
+                    'dryRun' => true,
+                    'entryId' => $ctx['owner']->id,
+                    'fieldHandle' => $ctx['field']->handle,
+                    'blockId' => $ctx['blockId'],
+                    'diff' => $diff,
+                ]);
+            }
+
+            $remaining = [
+                ...array_slice($ctx['existing'], 0, $start),
+                ...array_slice($ctx['existing'], $end),
+            ];
+            $this->persistBlocks($ctx['owner'], $ctx['field'], $remaining);
+
+            return Response::success([
+                'entryId' => $ctx['owner']->id,
+                'fieldHandle' => $ctx['field']->handle,
+                'blockId' => $ctx['blockId'],
+                'blocksDeleted' => $end - $start,
+                'diff' => $diff,
+            ]);
+        });
+    }
+
+    /**
+     * Resolve a block ID to its canonical owner, field and position.
+     *
+     * Routes through canonical elements (Craft 5 canonical/derivative) just
+     * like create: the block's owner is resolved to its canonical element and
+     * the block is located by its canonical ID within that owner's field.
+     *
+     * @return array{blockId: int, block: object, field: NeoField, owner: ElementInterface, existing: array<int, object>, summaries: array<int, array<string, mixed>>, index: int}
+     * @throws ToolCallException
+     */
+    private function resolveBlockContext(int $blockId): array {
+        $block = Craft::$app->getElements()->getElementById($blockId);
+
+        if (!$block instanceof Block) {
+            throw new ToolCallException("Neo block with ID {$blockId} not found.");
+        }
+
+        $field = Craft::$app->getFields()->getFieldById((int) $block->fieldId);
+        if (!$field instanceof NeoField) {
+            throw new ToolCallException("Neo block {$blockId} does not belong to a Neo field.");
+        }
+
+        $owner = $this->resolveBlockOwner($block);
+        $canonicalId = (int) $block->getCanonicalId();
+        $existing = $this->existingBlocks($owner, (string) $field->handle);
+        $summaries = array_map(NeoBlockPayload::summarizeBlock(...), $existing);
+
+        $index = NeoBlockTree::findIndexById($summaries, $canonicalId);
+        if ($index === null) {
+            throw new ToolCallException(
+                "Block ID {$canonicalId} was not found in field '{$field->handle}' on entry {$owner->id}.",
+            );
+        }
+
+        return [
+            'blockId' => $canonicalId,
+            'block' => $existing[$index],
+            'field' => $field,
+            'owner' => $owner,
+            'existing' => $existing,
+            'summaries' => $summaries,
+            'index' => $index,
+        ];
+    }
+
+    /**
+     * Resolve a block's canonical owner element.
+     *
+     * @throws ToolCallException
+     */
+    private function resolveBlockOwner(Block $block): ElementInterface {
+        $ownerId = $block->primaryOwnerId ?? $block->ownerId;
+
+        if ($ownerId === null) {
+            throw new ToolCallException('Unable to resolve the owner element for the target block.');
+        }
+
+        $owner = Craft::$app->getElements()->getElementById((int) $ownerId);
+        if ($owner === null) {
+            throw new ToolCallException("Owner element {$ownerId} for the target block not found.");
+        }
+
+        return $owner->getCanonical();
+    }
+
+    /**
+     * Resolve the block type model of an existing block.
+     *
+     * @throws ToolCallException
+     */
+    private function blockTypeOf(object $block): object {
+        if (!method_exists($block, 'getType')) {
+            throw new ToolCallException('Unable to resolve the block type for the target block.');
+        }
+
+        $type = $block->getType();
+        if (!is_object($type)) {
+            throw new ToolCallException('Unable to resolve the block type for the target block.');
+        }
+
+        return $type;
+    }
+
+    /**
+     * Read the current values of the given field handles from a block.
+     *
+     * @param array<int, string> $handles
+     * @return array<string, mixed>
+     */
+    private function readFieldValues(object $block, array $handles): array {
+        $values = [];
+
+        foreach ($handles as $handle) {
+            $values[(string) $handle] = $this->readFieldValue($block, (string) $handle);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Read a single field value from a block, coerced to a JSON-safe form.
+     */
+    private function readFieldValue(object $block, string $handle): mixed {
+        if (!method_exists($block, 'getFieldValue')) {
+            return null;
+        }
+
+        try {
+            $value = $block->getFieldValue($handle);
+        } catch (Throwable) {
+            return null;
+        }
+
+        if ($value === null || is_scalar($value) || is_array($value)) {
+            return $value;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        return '(complex value)';
+    }
+
+    /**
+     * Apply new field values to an existing block, duck-typed.
+     */
+    private function applyFieldValues(object $block, array $values): void {
+        if (method_exists($block, 'setFieldValues')) {
+            $block->setFieldValues($values);
+        }
+    }
+
+    /**
+     * Resolve the reorder request to a new flat index ordering. Exactly one of
+     * order / move must be provided.
+     *
+     * @param array<int, array<string, mixed>> $summaries
+     * @return array<int, int>
+     * @throws ToolCallException
+     */
+    private function resolveReorder(array $summaries, ?string $order, ?string $move): array {
+        $hasOrder = $order !== null && trim($order) !== '';
+        $hasMove = $move !== null && trim($move) !== '';
+
+        if ($hasOrder === $hasMove) {
+            throw new ToolCallException(
+                'Provide exactly one of order (a JSON array of top-level block IDs) '
+                . 'or move (a JSON object {blockId, position}).',
+            );
+        }
+
+        if ($hasOrder) {
+            return NeoBlockTree::orderIndexes($summaries, NeoBlockTree::decodeOrder($order));
+        }
+
+        $moveSpec = NeoBlockTree::decodeMove($move);
+
+        return NeoBlockTree::moveIndexes($summaries, $moveSpec['blockId'], $moveSpec['position']);
     }
 }

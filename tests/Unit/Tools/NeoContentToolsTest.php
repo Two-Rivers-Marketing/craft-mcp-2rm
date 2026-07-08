@@ -99,8 +99,154 @@ describe('NeoContentTools method signatures', function () {
     });
 });
 
+describe('NeoContentTools update_neo_block tool', function () {
+    it('has update_neo_block tool with McpTool attribute', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'updateNeoBlock');
+        $attributes = $reflection->getAttributes(McpTool::class);
+
+        expect($attributes)->toHaveCount(1);
+
+        $instance = $attributes[0]->newInstance();
+        expect($instance->name)->toBe('update_neo_block')
+            ->and($instance->description)->toContain('canonical')
+            ->and($instance->description)->toContain('dryRun')
+            ->and($instance->description)->toContain('block ID');
+    });
+
+    it('marks update_neo_block dangerous in the content category', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'updateNeoBlock');
+        $instance = $reflection->getAttributes(McpToolMeta::class)[0]->newInstance();
+
+        expect($instance->category)->toBe(ToolCategory::CONTENT)
+            ->and($instance->dangerous)->toBeTrue();
+    });
+
+    it('requires blockId and fields, with optional dryRun and context', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'updateNeoBlock');
+        $parameters = $reflection->getParameters();
+
+        expect($parameters)->toHaveCount(4);
+
+        expect($parameters[0]->getName())->toBe('blockId')
+            ->and($parameters[0]->isOptional())->toBeFalse()
+            ->and($parameters[0]->getType()?->getName())->toBe('int');
+
+        expect($parameters[1]->getName())->toBe('fields')
+            ->and($parameters[1]->isOptional())->toBeFalse()
+            ->and($parameters[1]->getType()?->getName())->toBe('string');
+
+        expect($parameters[2]->getName())->toBe('dryRun')
+            ->and($parameters[2]->getType()?->getName())->toBe('bool')
+            ->and($parameters[2]->getDefaultValue())->toBeFalse();
+
+        expect($parameters[3]->getName())->toBe('context')
+            ->and($parameters[3]->isOptional())->toBeTrue();
+
+        expect($reflection->getReturnType()?->getName())->toBe('array');
+    });
+});
+
+describe('NeoContentTools reorder_neo_blocks tool', function () {
+    it('has reorder_neo_blocks tool with McpTool attribute', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'reorderNeoBlocks');
+        $attributes = $reflection->getAttributes(McpTool::class);
+
+        expect($attributes)->toHaveCount(1);
+
+        $instance = $attributes[0]->newInstance();
+        expect($instance->name)->toBe('reorder_neo_blocks')
+            ->and($instance->description)->toContain('canonical')
+            ->and($instance->description)->toContain('dryRun')
+            ->and($instance->description)->toContain('order')
+            ->and($instance->description)->toContain('move');
+    });
+
+    it('marks reorder_neo_blocks dangerous in the content category', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'reorderNeoBlocks');
+        $instance = $reflection->getAttributes(McpToolMeta::class)[0]->newInstance();
+
+        expect($instance->category)->toBe(ToolCategory::CONTENT)
+            ->and($instance->dangerous)->toBeTrue();
+    });
+
+    it('requires entryId with optional fieldHandle, order, move, dryRun and context', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'reorderNeoBlocks');
+        $parameters = $reflection->getParameters();
+
+        expect($parameters)->toHaveCount(6);
+
+        expect($parameters[0]->getName())->toBe('entryId')
+            ->and($parameters[0]->isOptional())->toBeFalse()
+            ->and($parameters[0]->getType()?->getName())->toBe('int');
+
+        expect($parameters[1]->getName())->toBe('fieldHandle')
+            ->and($parameters[1]->isOptional())->toBeTrue()
+            ->and($parameters[1]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[2]->getName())->toBe('order')
+            ->and($parameters[2]->isOptional())->toBeTrue()
+            ->and($parameters[2]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[3]->getName())->toBe('move')
+            ->and($parameters[3]->isOptional())->toBeTrue()
+            ->and($parameters[3]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[4]->getName())->toBe('dryRun')
+            ->and($parameters[4]->getType()?->getName())->toBe('bool')
+            ->and($parameters[4]->getDefaultValue())->toBeFalse();
+
+        expect($parameters[5]->getName())->toBe('context')
+            ->and($parameters[5]->isOptional())->toBeTrue();
+
+        expect($reflection->getReturnType()?->getName())->toBe('array');
+    });
+});
+
+describe('NeoContentTools delete_neo_block tool', function () {
+    it('has delete_neo_block tool with McpTool attribute', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'deleteNeoBlock');
+        $attributes = $reflection->getAttributes(McpTool::class);
+
+        expect($attributes)->toHaveCount(1);
+
+        $instance = $attributes[0]->newInstance();
+        expect($instance->name)->toBe('delete_neo_block')
+            ->and($instance->description)->toContain('canonical')
+            ->and($instance->description)->toContain('dryRun')
+            ->and($instance->description)->toContain('descendants');
+    });
+
+    it('marks delete_neo_block dangerous in the content category', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'deleteNeoBlock');
+        $instance = $reflection->getAttributes(McpToolMeta::class)[0]->newInstance();
+
+        expect($instance->category)->toBe(ToolCategory::CONTENT)
+            ->and($instance->dangerous)->toBeTrue();
+    });
+
+    it('requires blockId with optional dryRun and context', function () {
+        $reflection = new ReflectionMethod(NeoContentTools::class, 'deleteNeoBlock');
+        $parameters = $reflection->getParameters();
+
+        expect($parameters)->toHaveCount(3);
+
+        expect($parameters[0]->getName())->toBe('blockId')
+            ->and($parameters[0]->isOptional())->toBeFalse()
+            ->and($parameters[0]->getType()?->getName())->toBe('int');
+
+        expect($parameters[1]->getName())->toBe('dryRun')
+            ->and($parameters[1]->getType()?->getName())->toBe('bool')
+            ->and($parameters[1]->getDefaultValue())->toBeFalse();
+
+        expect($parameters[2]->getName())->toBe('context')
+            ->and($parameters[2]->isOptional())->toBeTrue();
+
+        expect($reflection->getReturnType()?->getName())->toBe('array');
+    });
+});
+
 describe('NeoContentTools tool count', function () {
-    it('has exactly 1 public method with McpTool attribute', function () {
+    it('has exactly 4 public methods with McpTool attribute', function () {
         $reflection = new ReflectionClass(NeoContentTools::class);
         $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC);
 
@@ -112,7 +258,7 @@ describe('NeoContentTools tool count', function () {
             return !empty($method->getAttributes(McpTool::class));
         });
 
-        expect($toolMethods)->toHaveCount(1);
+        expect($toolMethods)->toHaveCount(4);
     });
 });
 
