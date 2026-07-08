@@ -14,7 +14,7 @@ use twoRivers\craft\Mcp\installer\EnvironmentDetector;
  * Provides shared configuration generation logic for DDEV and native PHP environments.
  */
 abstract class AbstractMcpClient implements McpClientInterface {
-    protected const BIN_PATH = 'vendor/stimmt/craft-mcp/bin/mcp-server';
+    protected const BIN_PATH = 'vendor/2rm/craft-mcp/bin/mcp-server';
 
     public function __construct(
         protected readonly string $projectRoot,

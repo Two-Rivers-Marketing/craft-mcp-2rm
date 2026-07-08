@@ -10,10 +10,10 @@ declare(strict_types=1);
  * Craft functionality as tools for AI assistants.
  *
  * Usage (from Craft root):
- *   php vendor/stimmt/craft-mcp/bin/mcp-server
+ *   php vendor/2rm/craft-mcp/bin/mcp-server
  *
  * Usage with DDEV:
- *   ddev exec php vendor/stimmt/craft-mcp/bin/mcp-server
+ *   ddev exec php vendor/2rm/craft-mcp/bin/mcp-server
  */
 
 // Shield the stdio transport: stdout is the JSON-RPC stream, so any stray

@@ -367,7 +367,7 @@ class InstallController extends Controller {
         $this->stdout('  Restart your MCP clients to pick up the new configuration.' . PHP_EOL);
         $this->stdout(PHP_EOL);
         $this->stdout('Documentation: ', Console::FG_GREY);
-        $this->stdout('https://github.com/stimmtdigital/craft-mcp' . PHP_EOL);
+        $this->stdout('https://github.com/Two-Rivers-Marketing/craft-mcp-2rm' . PHP_EOL);
         $this->stdout(PHP_EOL);
     }
 }
