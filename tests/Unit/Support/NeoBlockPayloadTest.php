@@ -184,3 +184,52 @@ describe('NeoBlockPayload::diff()', function () {
         expect($current)->toBe($copy);
     });
 });
+
+describe('NeoBlockPayload::fieldDiff()', function () {
+    it('reports changed handles with from/to values', function () {
+        $diff = NeoBlockPayload::fieldDiff(
+            ['heading' => 'Old', 'columns' => 3],
+            ['heading' => 'New', 'columns' => 4],
+        );
+
+        expect($diff['changed'])->toBe([
+            'heading' => ['from' => 'Old', 'to' => 'New'],
+            'columns' => ['from' => 3, 'to' => 4],
+        ])->and($diff['unchanged'])->toBe([]);
+    });
+
+    it('reports handles whose value is unchanged', function () {
+        $diff = NeoBlockPayload::fieldDiff(
+            ['heading' => 'Same', 'body' => 'Old'],
+            ['heading' => 'Same', 'body' => 'New'],
+        );
+
+        expect($diff['changed'])->toBe(['body' => ['from' => 'Old', 'to' => 'New']])
+            ->and($diff['unchanged'])->toBe(['heading']);
+    });
+
+    it('only considers the handles present in the new values', function () {
+        // An existing handle absent from the update is neither changed nor unchanged.
+        $diff = NeoBlockPayload::fieldDiff(
+            ['heading' => 'H', 'body' => 'B'],
+            ['heading' => 'H2'],
+        );
+
+        expect($diff['changed'])->toBe(['heading' => ['from' => 'H', 'to' => 'H2']])
+            ->and($diff['unchanged'])->toBe([]);
+    });
+
+    it('treats a missing old value as null', function () {
+        $diff = NeoBlockPayload::fieldDiff([], ['heading' => 'New']);
+
+        expect($diff['changed'])->toBe(['heading' => ['from' => null, 'to' => 'New']]);
+    });
+
+    it('compares array values structurally', function () {
+        $same = NeoBlockPayload::fieldDiff(['ids' => [1, 2]], ['ids' => [1, 2]]);
+        $changed = NeoBlockPayload::fieldDiff(['ids' => [1, 2]], ['ids' => [2, 1]]);
+
+        expect($same['unchanged'])->toBe(['ids'])
+            ->and($changed['changed'])->toBe(['ids' => ['from' => [1, 2], 'to' => [2, 1]]]);
+    });
+});

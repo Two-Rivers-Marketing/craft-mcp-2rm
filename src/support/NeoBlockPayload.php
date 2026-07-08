@@ -123,6 +123,36 @@ final class NeoBlockPayload {
     }
 
     /**
+     * Build a per-handle old->new diff for an update (issue #10).
+     *
+     * Only the handles present in $newValues are considered — an update
+     * touches exactly the given fields. A handle whose new value equals its
+     * old value is reported as unchanged rather than changed.
+     *
+     * @param array<string, mixed> $oldValues Current values keyed by handle
+     * @param array<string, mixed> $newValues Requested values keyed by handle
+     * @return array{changed: array<string, array{from: mixed, to: mixed}>, unchanged: array<int, string>}
+     */
+    public static function fieldDiff(array $oldValues, array $newValues): array {
+        $changed = [];
+        $unchanged = [];
+
+        foreach ($newValues as $handle => $value) {
+            $key = (string) $handle;
+            $old = $oldValues[$key] ?? null;
+
+            if ($old === $value) {
+                $unchanged[] = $key;
+                continue;
+            }
+
+            $changed[$key] = ['from' => $old, 'to' => $value];
+        }
+
+        return ['changed' => $changed, 'unchanged' => $unchanged];
+    }
+
+    /**
      * Resolve a block's type handle without referencing Neo classes.
      */
     private static function typeHandle(object $block): ?string {

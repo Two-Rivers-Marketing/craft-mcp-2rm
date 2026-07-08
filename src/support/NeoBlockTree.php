@@ -133,6 +133,151 @@ final class NeoBlockTree {
     }
 
     /**
+     * Decode the `order` JSON argument into a list of integer block IDs.
+     *
+     * @return array<int, int>
+     * @throws ToolCallException When the JSON is invalid, empty, or not a list of ints
+     */
+    public static function decodeOrder(?string $orderJson): array {
+        if ($orderJson === null || trim($orderJson) === '') {
+            throw new ToolCallException('order must be a JSON array of top-level block IDs, e.g. [12, 9, 15].');
+        }
+
+        $decoded = json_decode($orderJson, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new ToolCallException('Invalid JSON in order parameter: ' . json_last_error_msg());
+        }
+
+        if (!is_array($decoded) || !array_is_list($decoded)) {
+            throw new ToolCallException('order must be a JSON array (list) of block IDs, e.g. [12, 9, 15].');
+        }
+
+        if ($decoded === []) {
+            throw new ToolCallException('order must contain at least one block ID.');
+        }
+
+        return array_map(self::intId(...), $decoded);
+    }
+
+    /**
+     * Decode the `move` JSON argument into a {blockId, position} instruction.
+     *
+     * @return array{blockId: int, position: string}
+     * @throws ToolCallException When the JSON is invalid or missing blockId/position
+     */
+    public static function decodeMove(?string $moveJson): array {
+        if ($moveJson === null || trim($moveJson) === '') {
+            throw new ToolCallException('move must be a JSON object {blockId, position}.');
+        }
+
+        $decoded = json_decode($moveJson, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new ToolCallException('Invalid JSON in move parameter: ' . json_last_error_msg());
+        }
+
+        if (!is_array($decoded) || array_is_list($decoded)) {
+            throw new ToolCallException(
+                'move must be a JSON object with blockId and position, e.g. {"blockId": 12, "position": "before:9"}.',
+            );
+        }
+
+        if (!array_key_exists('blockId', $decoded)) {
+            throw new ToolCallException('move requires a blockId.');
+        }
+
+        if (!array_key_exists('position', $decoded)) {
+            throw new ToolCallException('move requires a position (an integer index, or before:<id> / after:<id>).');
+        }
+
+        return [
+            'blockId' => self::intId($decoded['blockId']),
+            'position' => self::normalizePosition($decoded['position']),
+        ];
+    }
+
+    /**
+     * Compute the new flat index order after reordering top-level blocks.
+     *
+     * The requested order must be a permutation of the current top-level block
+     * IDs; each block carries its whole subtree with it.
+     *
+     * @param array<int, array<string, mixed>> $flat
+     * @param array<int, int> $order
+     * @return array<int, int> Original flat indices in the new order
+     * @throws ToolCallException When the order is not a permutation of the top-level IDs
+     */
+    public static function orderIndexes(array $flat, array $order): array {
+        self::assertPermutation(self::topLevelIds($flat), $order);
+
+        $result = [];
+        foreach ($order as $id) {
+            $index = (int) self::findIndexById($flat, $id);
+            $end = self::subtreeEnd($flat, $index);
+            $result = [...$result, ...range($index, $end - 1)];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Compute the new flat index order after moving one block's subtree to a
+     * new position among its siblings.
+     *
+     * @param array<int, array<string, mixed>> $flat
+     * @return array<int, int> Original flat indices in the new order
+     * @throws ToolCallException When the block is missing or the position references the moved subtree
+     */
+    public static function moveIndexes(array $flat, int $blockId, ?string $position): array {
+        $index = self::findIndexById($flat, $blockId);
+        if ($index === null) {
+            throw new ToolCallException("Block ID {$blockId} was not found among the blocks to reorder.");
+        }
+
+        $subtreeEnd = self::subtreeEnd($flat, $index);
+        $scope = self::siblingScope($flat, $index);
+
+        self::assertReferenceOutsideRange($flat, $position, $index, $subtreeEnd);
+
+        $insertionIndex = self::resolveInsertionIndex(
+            $flat,
+            $position,
+            $scope['start'],
+            $scope['end'],
+            $scope['level'],
+        );
+
+        return self::spliceIndexRange(count($flat), $index, $subtreeEnd, $insertionIndex);
+    }
+
+    /**
+     * The sibling scope (flat range + level) of the block at $index: the range
+     * of its parent's children, or the whole list for a top-level block.
+     *
+     * @param array<int, array<string, mixed>> $flat
+     * @return array{start: int, end: int, level: int}
+     */
+    public static function siblingScope(array $flat, int $index): array {
+        $level = (int) ($flat[$index]['level'] ?? 1);
+
+        if ($level <= 1) {
+            return ['start' => 0, 'end' => count($flat), 'level' => 1];
+        }
+
+        $parentIndex = self::parentIndex($flat, $index);
+        if ($parentIndex === null) {
+            return ['start' => 0, 'end' => count($flat), 'level' => $level];
+        }
+
+        return [
+            'start' => $parentIndex + 1,
+            'end' => self::subtreeEnd($flat, $parentIndex),
+            'level' => $level,
+        ];
+    }
+
+    /**
      * Return the flat index just past the subtree rooted at $start.
      *
      * @param array<int, array<string, mixed>> $flat
@@ -230,6 +375,55 @@ final class NeoBlockTree {
                 'at' => $insertionIndex,
                 'blockCount' => count($marked),
                 'blocks' => array_values($marked),
+            ],
+        ];
+    }
+
+    /**
+     * Build a before/after diff for a pure reordering (same blocks, new order).
+     *
+     * @param array<int, array<string, mixed>> $beforeFlat
+     * @param array<int, array<string, mixed>> $afterFlat
+     * @return array<string, mixed>
+     */
+    public static function reorderDiff(array $beforeFlat, array $afterFlat): array {
+        return [
+            'before' => [
+                'blockCount' => count($beforeFlat),
+                'blocks' => array_values($beforeFlat),
+            ],
+            'after' => [
+                'blockCount' => count($afterFlat),
+                'blocks' => array_values($afterFlat),
+            ],
+        ];
+    }
+
+    /**
+     * Build a before/after diff for deleting the subtree range [start, end).
+     *
+     * @param array<int, array<string, mixed>> $beforeFlat
+     * @return array<string, mixed>
+     */
+    public static function deleteDiff(array $beforeFlat, int $start, int $end): array {
+        $removed = array_slice($beforeFlat, $start, $end - $start);
+        $after = [
+            ...array_slice($beforeFlat, 0, $start),
+            ...array_slice($beforeFlat, $end),
+        ];
+
+        return [
+            'before' => [
+                'blockCount' => count($beforeFlat),
+                'blocks' => array_values($beforeFlat),
+            ],
+            'after' => [
+                'blockCount' => count($after),
+                'blocks' => array_values($after),
+            ],
+            'removed' => [
+                'blockCount' => count($removed),
+                'blocks' => array_values($removed),
             ],
         ];
     }
@@ -363,6 +557,183 @@ final class NeoBlockTree {
         }
 
         return $siblings[$index]['index'];
+    }
+
+    /**
+     * The flat index of the nearest ancestor of the block at $index (the block
+     * one level up that precedes it), or null when it is top-level.
+     *
+     * @param array<int, array<string, mixed>> $flat
+     */
+    private static function parentIndex(array $flat, int $index): ?int {
+        $level = (int) ($flat[$index]['level'] ?? 1);
+
+        for ($i = $index - 1; $i >= 0; $i--) {
+            if ((int) ($flat[$i]['level'] ?? 0) === $level - 1) {
+                return $i;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The IDs of the top-level (level 1) blocks in flat order.
+     *
+     * @param array<int, array<string, mixed>> $flat
+     * @return array<int, int>
+     */
+    private static function topLevelIds(array $flat): array {
+        $ids = [];
+
+        foreach ($flat as $item) {
+            if ((int) ($item['level'] ?? 0) === 1) {
+                $ids[] = (int) ($item['id'] ?? 0);
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Assert the requested order is a permutation of the current top-level IDs.
+     *
+     * @param array<int, int> $current
+     * @param array<int, int> $requested
+     * @throws ToolCallException Listing missing and extra IDs
+     */
+    private static function assertPermutation(array $current, array $requested): void {
+        $missing = array_values(array_diff($current, $requested));
+        $extra = array_values(array_diff($requested, $current));
+
+        if ($missing === [] && $extra === [] && count($requested) === count($current)) {
+            return;
+        }
+
+        $parts = [];
+        if ($missing !== []) {
+            $parts[] = 'missing: ' . implode(', ', $missing);
+        }
+
+        if ($extra !== []) {
+            $parts[] = 'unexpected: ' . implode(', ', $extra);
+        }
+
+        if ($parts === []) {
+            $parts[] = 'duplicate block IDs are not allowed';
+        }
+
+        throw new ToolCallException(
+            'order must be a permutation of the current top-level block IDs ('
+            . implode(', ', $current) . '). Problems — ' . implode('; ', $parts) . '.',
+        );
+    }
+
+    /**
+     * Reject a before:/after: reference that points inside the moved subtree
+     * range [start, end) (the moved block itself or one of its descendants).
+     *
+     * @param array<int, array<string, mixed>> $flat
+     * @throws ToolCallException
+     */
+    private static function assertReferenceOutsideRange(array $flat, ?string $position, int $start, int $end): void {
+        $refId = self::referencedId($position);
+        if ($refId === null) {
+            return;
+        }
+
+        $refIndex = self::findIndexById($flat, $refId);
+        if ($refIndex === null) {
+            return;
+        }
+
+        if ($refIndex >= $start && $refIndex < $end) {
+            throw new ToolCallException(
+                "Cannot move a block relative to itself or one of its own descendants (position '{$position}').",
+            );
+        }
+    }
+
+    /**
+     * Extract the numeric block ID referenced by a before:/after: position, or
+     * null when the position is not a numeric reference.
+     */
+    private static function referencedId(?string $position): ?int {
+        if ($position === null) {
+            return null;
+        }
+
+        $position = trim($position);
+        $raw = match (true) {
+            str_starts_with($position, 'before:') => substr($position, 7),
+            str_starts_with($position, 'after:') => substr($position, 6),
+            default => null,
+        };
+
+        if ($raw === null || !ctype_digit(trim($raw))) {
+            return null;
+        }
+
+        return (int) trim($raw);
+    }
+
+    /**
+     * Produce a new index ordering by removing the contiguous range
+     * [start, end) and reinserting it at $insertionIndex (original coordinates).
+     *
+     * @return array<int, int>
+     */
+    private static function spliceIndexRange(int $count, int $start, int $end, int $insertionIndex): array {
+        $all = $count > 0 ? range(0, $count - 1) : [];
+        $moved = array_slice($all, $start, $end - $start);
+        $rest = [
+            ...array_slice($all, 0, $start),
+            ...array_slice($all, $end),
+        ];
+
+        $restInsert = $insertionIndex <= $start
+            ? $insertionIndex
+            : $insertionIndex - ($end - $start);
+
+        return [
+            ...array_slice($rest, 0, $restInsert),
+            ...$moved,
+            ...array_slice($rest, $restInsert),
+        ];
+    }
+
+    /**
+     * Coerce a JSON value into an integer block ID.
+     *
+     * @throws ToolCallException
+     */
+    private static function intId(mixed $value): int {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && ctype_digit(trim($value))) {
+            return (int) trim($value);
+        }
+
+        throw new ToolCallException('Block IDs must be integers.');
+    }
+
+    /**
+     * Normalize a move position (an int index or before:/after: string).
+     *
+     * @throws ToolCallException
+     */
+    private static function normalizePosition(mixed $position): string {
+        if (is_int($position)) {
+            return (string) $position;
+        }
+
+        if (is_string($position) && trim($position) !== '') {
+            return trim($position);
+        }
+
+        throw new ToolCallException('move position must be an integer index, or a before:<id> / after:<id> string.');
     }
 
     /**

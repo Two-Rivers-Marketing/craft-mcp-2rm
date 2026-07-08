@@ -290,6 +290,192 @@ describe('NeoBlockTree::childBlocksAllows()', function () {
     });
 });
 
+describe('NeoBlockTree::decodeOrder()', function () {
+    it('decodes a JSON array of integer IDs', function () {
+        expect(NeoBlockTree::decodeOrder('[4, 1]'))->toBe([4, 1]);
+    });
+
+    it('coerces numeric-string IDs to ints', function () {
+        expect(NeoBlockTree::decodeOrder('["4", "1"]'))->toBe([4, 1]);
+    });
+
+    it('throws on null or blank', function () {
+        NeoBlockTree::decodeOrder(null);
+    })->throws(ToolCallException::class, 'order must be a JSON array');
+
+    it('throws on an empty array', function () {
+        NeoBlockTree::decodeOrder('[]');
+    })->throws(ToolCallException::class, 'at least one block ID');
+
+    it('throws on invalid JSON', function () {
+        NeoBlockTree::decodeOrder('[not json');
+    })->throws(ToolCallException::class, 'Invalid JSON');
+
+    it('throws when given an object, not a list', function () {
+        NeoBlockTree::decodeOrder('{"a":1}');
+    })->throws(ToolCallException::class, 'JSON array');
+
+    it('throws on non-integer IDs', function () {
+        NeoBlockTree::decodeOrder('[1, "abc"]');
+    })->throws(ToolCallException::class, 'must be integers');
+});
+
+describe('NeoBlockTree::decodeMove()', function () {
+    it('decodes blockId with an integer position', function () {
+        expect(NeoBlockTree::decodeMove('{"blockId": 4, "position": 2}'))
+            ->toBe(['blockId' => 4, 'position' => '2']);
+    });
+
+    it('decodes blockId with a before:/after: position', function () {
+        expect(NeoBlockTree::decodeMove('{"blockId": 4, "position": "before:1"}'))
+            ->toBe(['blockId' => 4, 'position' => 'before:1']);
+    });
+
+    it('throws on null or blank', function () {
+        NeoBlockTree::decodeMove('  ');
+    })->throws(ToolCallException::class, 'move must be a JSON object');
+
+    it('throws when given a list, not an object', function () {
+        NeoBlockTree::decodeMove('[1, 2]');
+    })->throws(ToolCallException::class, 'JSON object');
+
+    it('throws when blockId is missing', function () {
+        NeoBlockTree::decodeMove('{"position": 1}');
+    })->throws(ToolCallException::class, 'requires a blockId');
+
+    it('throws when position is missing', function () {
+        NeoBlockTree::decodeMove('{"blockId": 4}');
+    })->throws(ToolCallException::class, 'requires a position');
+
+    it('throws when position is neither int nor non-empty string', function () {
+        NeoBlockTree::decodeMove('{"blockId": 4, "position": null}');
+    })->throws(ToolCallException::class, 'move position must be');
+});
+
+describe('NeoBlockTree::siblingScope()', function () {
+    it('returns the whole list for a top-level block', function () {
+        expect(NeoBlockTree::siblingScope(treeFixture(), 0))
+            ->toBe(['start' => 0, 'end' => 4, 'level' => 1]);
+    });
+
+    it('returns the parent children range for a nested block', function () {
+        // idx1 (id2) is a child of idx0 (id1); siblings span [1,3) at level 2.
+        expect(NeoBlockTree::siblingScope(treeFixture(), 1))
+            ->toBe(['start' => 1, 'end' => 3, 'level' => 2]);
+    });
+});
+
+describe('NeoBlockTree::assertPermutation() via orderIndexes()', function () {
+    it('reorders whole subtrees by a valid permutation', function () {
+        // Move the callout (id4) before the multiColumn (id1) + its children.
+        $order = NeoBlockTree::orderIndexes(treeFixture(), [4, 1]);
+
+        expect($order)->toBe([3, 0, 1, 2]);
+    });
+
+    it('is a no-op ordering when the order matches the current order', function () {
+        expect(NeoBlockTree::orderIndexes(treeFixture(), [1, 4]))->toBe([0, 1, 2, 3]);
+    });
+
+    it('throws listing missing top-level IDs', function () {
+        NeoBlockTree::orderIndexes(treeFixture(), [1]);
+    })->throws(ToolCallException::class, 'missing: 4');
+
+    it('throws listing unexpected IDs (including nested/unknown)', function () {
+        NeoBlockTree::orderIndexes(treeFixture(), [1, 4, 99]);
+    })->throws(ToolCallException::class, 'unexpected: 99');
+
+    it('rejects a nested block ID as a top-level entry', function () {
+        // id2 is a level-2 child, never a valid top-level order entry.
+        NeoBlockTree::orderIndexes(treeFixture(), [1, 2, 4]);
+    })->throws(ToolCallException::class, 'unexpected: 2');
+
+    it('reports duplicates', function () {
+        NeoBlockTree::orderIndexes(treeFixture(), [1, 1]);
+    })->throws(ToolCallException::class, 'missing: 4');
+});
+
+describe('NeoBlockTree::moveIndexes() top-level', function () {
+    it('moves a leaf block before another via before:', function () {
+        // Move callout (id4, idx3) before multiColumn (id1, idx0).
+        expect(NeoBlockTree::moveIndexes(treeFixture(), 4, 'before:1'))->toBe([3, 0, 1, 2]);
+    });
+
+    it('moves a whole subtree via after:', function () {
+        // Move multiColumn (id1) + its 2 children to after callout (id4).
+        expect(NeoBlockTree::moveIndexes(treeFixture(), 1, 'after:4'))->toBe([3, 0, 1, 2]);
+    });
+
+    it('moves via an integer index', function () {
+        // Position "0" = before the first top-level sibling.
+        expect(NeoBlockTree::moveIndexes(treeFixture(), 4, '0'))->toBe([3, 0, 1, 2]);
+    });
+
+    it('is a no-op when moved to its own integer position', function () {
+        expect(NeoBlockTree::moveIndexes(treeFixture(), 1, '0'))->toBe([0, 1, 2, 3]);
+    });
+
+    it('rejects a before: reference to the moved block itself', function () {
+        NeoBlockTree::moveIndexes(treeFixture(), 1, 'before:1');
+    })->throws(ToolCallException::class, 'itself or one of its own descendants');
+
+    it('throws when the block does not exist', function () {
+        NeoBlockTree::moveIndexes(treeFixture(), 99, '0');
+    })->throws(ToolCallException::class, 'was not found among the blocks to reorder');
+
+    it('rejects a before: reference inside the moved subtree', function () {
+        // id2 is a child of id1; moving id1 relative to its own descendant is invalid.
+        NeoBlockTree::moveIndexes(treeFixture(), 1, 'after:2');
+    })->throws(ToolCallException::class, 'itself or one of its own descendants');
+});
+
+describe('NeoBlockTree::moveIndexes() within a parent scope', function () {
+    it('reorders children inside their parent', function () {
+        // Move id3 (idx2) before id2 (idx1); both are children of id1.
+        expect(NeoBlockTree::moveIndexes(treeFixture(), 3, 'before:2'))->toBe([0, 2, 1, 3]);
+    });
+
+    it('does not allow a child to reference a top-level sibling', function () {
+        // id4 is top-level; not a valid reference within id2's sibling scope.
+        NeoBlockTree::moveIndexes(treeFixture(), 2, 'before:4');
+    })->throws(ToolCallException::class, 'not an existing sibling');
+});
+
+describe('NeoBlockTree::reorderDiff()', function () {
+    it('reports before/after block lists', function () {
+        $before = treeFixture();
+        $after = [$before[3], $before[0], $before[1], $before[2]];
+
+        $diff = NeoBlockTree::reorderDiff($before, $after);
+
+        expect($diff['before']['blockCount'])->toBe(4)
+            ->and($diff['after']['blockCount'])->toBe(4)
+            ->and($diff['after']['blocks'][0]['id'])->toBe(4)
+            ->and($diff['after']['blocks'][1]['id'])->toBe(1);
+    });
+});
+
+describe('NeoBlockTree::deleteDiff()', function () {
+    it('removes a subtree range and reports before/after/removed', function () {
+        // Remove multiColumn (idx0) + its 2 children: range [0,3).
+        $diff = NeoBlockTree::deleteDiff(treeFixture(), 0, 3);
+
+        expect($diff['before']['blockCount'])->toBe(4)
+            ->and($diff['after']['blockCount'])->toBe(1)
+            ->and($diff['after']['blocks'][0]['id'])->toBe(4)
+            ->and($diff['removed']['blockCount'])->toBe(3)
+            ->and(array_map(fn ($b) => $b['id'], $diff['removed']['blocks']))->toBe([1, 2, 3]);
+    });
+
+    it('removes a single leaf', function () {
+        $diff = NeoBlockTree::deleteDiff(treeFixture(), 3, 4);
+
+        expect($diff['after']['blockCount'])->toBe(3)
+            ->and($diff['removed']['blockCount'])->toBe(1)
+            ->and($diff['removed']['blocks'][0]['id'])->toBe(4);
+    });
+});
+
 describe('NeoBlockTree::diff()', function () {
     it('splices a flattened subtree into the before list at the index', function () {
         $before = treeFixture();
