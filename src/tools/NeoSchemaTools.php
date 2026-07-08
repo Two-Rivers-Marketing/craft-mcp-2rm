@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace twoRivers\craft\Mcp\tools;
 
-use benf\neo\Field as NeoField;
 use benf\neo\Plugin as Neo;
 use Craft;
 use Mcp\Capability\Attribute\McpTool;
@@ -13,8 +12,8 @@ use Mcp\Server\RequestContext;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 use twoRivers\craft\Mcp\enums\ToolCategory;
-use twoRivers\craft\Mcp\Mcp;
 use twoRivers\craft\Mcp\support\NeoSerializer;
+use twoRivers\craft\Mcp\support\ResolvesNeoBuilderField;
 use twoRivers\craft\Mcp\support\SafeExecution;
 
 /**
@@ -28,6 +27,8 @@ use twoRivers\craft\Mcp\support\SafeExecution;
  * @author 2RM
  */
 class NeoSchemaTools implements ConditionalToolProvider {
+    use ResolvesNeoBuilderField;
+
     /**
      * Check if the Neo plugin is available.
      *
@@ -155,96 +156,5 @@ class NeoSchemaTools implements ConditionalToolProvider {
             . DIRECTORY_SEPARATOR . $handle . '.twig';
 
         return NeoSerializer::blockType($blockType, is_file($absolutePath), $templatePath);
-    }
-
-    /**
-     * Resolve the Neo builder field from an explicit handle, an entry, or the
-     * builderFieldHandle plugin setting (default 'contentBuilder').
-     *
-     * @throws ToolCallException
-     */
-    private function resolveBuilderField(?int $entryId, ?string $fieldHandle): NeoField {
-        $handle = $fieldHandle ?? Mcp::settings()->builderFieldHandle;
-
-        if ($entryId !== null) {
-            return $this->resolveFieldFromEntry($entryId, $handle, $fieldHandle !== null);
-        }
-
-        $field = Craft::$app->getFields()->getFieldByHandle($handle);
-
-        if ($field === null) {
-            throw new ToolCallException(
-                "Field '{$handle}' not found. Pass fieldHandle explicitly or configure the builderFieldHandle plugin setting.",
-            );
-        }
-
-        if (!$field instanceof NeoField) {
-            throw new ToolCallException(
-                "Field '{$handle}' is not a Neo field (" . $field::class . ').',
-            );
-        }
-
-        return $field;
-    }
-
-    /**
-     * Resolve the Neo field from an entry's field layout.
-     *
-     * Prefers the field matching $handle; when no explicit handle was given
-     * and the layout has exactly one Neo field, that field is used.
-     *
-     * @throws ToolCallException
-     */
-    private function resolveFieldFromEntry(int $entryId, string $handle, bool $explicitHandle): NeoField {
-        $entry = Craft::$app->getElements()->getElementById($entryId);
-
-        if ($entry === null) {
-            throw new ToolCallException("Element with ID {$entryId} not found");
-        }
-
-        $neoFields = [];
-        foreach ($entry->getFieldLayout()?->getCustomFields() ?? [] as $field) {
-            if (!$field instanceof NeoField) {
-                continue;
-            }
-
-            if ($field->handle === $handle) {
-                return $field;
-            }
-
-            $neoFields[] = $field;
-        }
-
-        if ($explicitHandle) {
-            throw new ToolCallException("Entry {$entryId} has no Neo field with handle '{$handle}'");
-        }
-
-        if (count($neoFields) === 1) {
-            return $neoFields[0];
-        }
-
-        if ($neoFields === []) {
-            throw new ToolCallException("Entry {$entryId} has no Neo fields in its field layout");
-        }
-
-        $handles = implode(', ', array_map(
-            static fn (NeoField $field): string => (string) $field->handle,
-            $neoFields,
-        ));
-
-        throw new ToolCallException(
-            "Entry {$entryId} has multiple Neo fields ({$handles}); pass fieldHandle to choose one",
-        );
-    }
-
-    /**
-     * Assert Neo is available, throw exception if not.
-     *
-     * @throws ToolCallException
-     */
-    private function assertNeoAvailable(): void {
-        if (!self::isAvailable()) {
-            throw new ToolCallException('The Neo plugin (benf/craft-neo) is not installed or not enabled');
-        }
     }
 }
