@@ -30,7 +30,10 @@ describe('NeoContentTools class structure', function () {
         $instance = $attributes[0]->newInstance();
         expect($instance->name)->toBe('create_neo_block')
             ->and($instance->description)->toContain('canonical')
-            ->and($instance->description)->toContain('dryRun');
+            ->and($instance->description)->toContain('dryRun')
+            ->and($instance->description)->toContain('children')
+            ->and($instance->description)->toContain('position')
+            ->and($instance->description)->toContain('parentBlockId');
     });
 
     it('marks create_neo_block dangerous in the content category', function () {
@@ -46,11 +49,11 @@ describe('NeoContentTools class structure', function () {
 });
 
 describe('NeoContentTools method signatures', function () {
-    it('createNeoBlock requires entryId and blockType, with optional fieldHandle, fields, dryRun and context', function () {
+    it('createNeoBlock requires entryId and blockType, with optional fieldHandle, fields, children, position, parentBlockId, dryRun and context', function () {
         $reflection = new ReflectionMethod(NeoContentTools::class, 'createNeoBlock');
         $parameters = $reflection->getParameters();
 
-        expect($parameters)->toHaveCount(6);
+        expect($parameters)->toHaveCount(9);
 
         expect($parameters[0]->getName())->toBe('entryId')
             ->and($parameters[0]->isOptional())->toBeFalse()
@@ -68,13 +71,26 @@ describe('NeoContentTools method signatures', function () {
             ->and($parameters[3]->isOptional())->toBeTrue()
             ->and($parameters[3]->getType()?->allowsNull())->toBeTrue();
 
-        expect($parameters[4]->getName())->toBe('dryRun')
+        expect($parameters[4]->getName())->toBe('children')
             ->and($parameters[4]->isOptional())->toBeTrue()
-            ->and($parameters[4]->getType()?->getName())->toBe('bool')
-            ->and($parameters[4]->getDefaultValue())->toBeFalse();
+            ->and($parameters[4]->getType()?->allowsNull())->toBeTrue();
 
-        expect($parameters[5]->getName())->toBe('context')
-            ->and($parameters[5]->isOptional())->toBeTrue();
+        expect($parameters[5]->getName())->toBe('position')
+            ->and($parameters[5]->isOptional())->toBeTrue()
+            ->and($parameters[5]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[6]->getName())->toBe('parentBlockId')
+            ->and($parameters[6]->isOptional())->toBeTrue()
+            ->and($parameters[6]->getType()?->getName())->toBe('int')
+            ->and($parameters[6]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[7]->getName())->toBe('dryRun')
+            ->and($parameters[7]->isOptional())->toBeTrue()
+            ->and($parameters[7]->getType()?->getName())->toBe('bool')
+            ->and($parameters[7]->getDefaultValue())->toBeFalse();
+
+        expect($parameters[8]->getName())->toBe('context')
+            ->and($parameters[8]->isOptional())->toBeTrue();
     });
 
     it('createNeoBlock returns array', function () {

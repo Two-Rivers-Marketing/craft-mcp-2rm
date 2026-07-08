@@ -11,10 +11,12 @@ use craft\base\ElementInterface;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
+use Throwable;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\NeoBlockPayload;
+use twoRivers\craft\Mcp\support\NeoBlockTree;
 use twoRivers\craft\Mcp\support\NeoSerializer;
 use twoRivers\craft\Mcp\support\ResolvesNeoBuilderField;
 use twoRivers\craft\Mcp\support\Response;
@@ -41,11 +43,12 @@ class NeoContentTools implements ConditionalToolProvider {
     }
 
     /**
-     * Create a single flat Neo block appended at the end of an entry's content builder.
+     * Create a Neo block — optionally a whole nested tree — at a chosen
+     * position within an entry's content builder.
      */
     #[McpTool(
         name: 'create_neo_block',
-        description: 'Create a single Neo block appended at the end of an entry\'s content builder field. Targets the entry\'s canonical element so the change appears live. blockType is the block type handle (see describe_content_builder); fields is a JSON object of fieldHandle => value pairs for that block type. Pass dryRun: true to preview a structured before/after diff without saving anything. The builder field resolves from fieldHandle, the builderFieldHandle plugin setting, or the entry\'s sole Neo field.',
+        description: 'Create one or a whole nested tree of Neo blocks in an entry\'s content builder field in a single call. Targets the entry\'s canonical element so the change appears live. blockType is the root block type handle (see describe_content_builder); fields is a JSON object of fieldHandle => value pairs. children is an optional JSON array of nested block payloads, each with the same shape {blockType, fields, children} (e.g. a multiColumn with two columnItem children). position optionally places the new block among its siblings: an integer index ("0", "3"), or "before:<blockId>" / "after:<blockId>" referencing an existing sibling; default appends at the end. parentBlockId optionally nests the new block inside an existing block (position then applies within that parent\'s children). Pass dryRun: true to preview a flattened, leveled before/after diff without saving.',
     )]
     #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
     public function createNeoBlock(
@@ -53,52 +56,67 @@ class NeoContentTools implements ConditionalToolProvider {
         string $blockType,
         ?string $fieldHandle = null,
         ?string $fields = null,
+        ?string $children = null,
+        ?string $position = null,
+        ?int $parentBlockId = null,
         bool $dryRun = false,
         ?RequestContext $context = null,
     ): array {
-        return SafeExecution::run(function () use ($entryId, $blockType, $fieldHandle, $fields, $dryRun): array {
+        return SafeExecution::run(function () use (
+            $entryId,
+            $blockType,
+            $fieldHandle,
+            $fields,
+            $children,
+            $position,
+            $parentBlockId,
+            $dryRun,
+        ): array {
             $this->assertNeoAvailable();
 
             $owner = $this->resolveCanonicalOwner($entryId);
             $field = $this->resolveBuilderField($entryId, $fieldHandle);
-            $blockTypeModel = $this->resolveBlockType($field, $blockType);
 
-            $fieldValues = NeoBlockPayload::decode($fields);
-            NeoBlockPayload::assertKnownHandles(
-                $fieldValues,
-                $this->allowedFieldHandles($blockTypeModel),
+            $tree = NeoBlockTree::normalizeTree(
                 $blockType,
+                NeoBlockPayload::decode($fields),
+                NeoBlockTree::decodeChildren($children),
             );
+            $this->validateTree($field, $tree);
 
             $existing = $this->existingBlocks($owner, (string) $field->handle);
             $summaries = array_map(NeoBlockPayload::summarizeBlock(...), $existing);
 
-            $appended = [
-                'id' => null,
-                'type' => $blockType,
-                'level' => 1,
-                'sortOrder' => count($existing) + 1,
-                'fields' => $fieldValues,
-            ];
+            $scope = $this->resolveScope($summaries, $existing, $field, $parentBlockId, $blockType);
+            $insertionIndex = NeoBlockTree::resolveInsertionIndex(
+                $summaries,
+                $position,
+                $scope['start'],
+                $scope['end'],
+                $scope['level'],
+            );
+            $flatNew = NeoBlockTree::flatten($tree, $scope['level']);
 
             if ($dryRun) {
                 return Response::success([
                     'dryRun' => true,
                     'entryId' => $owner->id,
                     'fieldHandle' => $field->handle,
-                    'diff' => NeoBlockPayload::diff($summaries, $appended),
+                    'parentBlockId' => $parentBlockId,
+                    'diff' => NeoBlockTree::diff($summaries, $insertionIndex, $flatNew),
                 ]);
             }
 
-            $block = $this->saveBlock($owner, $field, $blockTypeModel, $fieldValues, count($existing) + 1);
-            $this->integrateBlockIntoOwner($owner, $field, $existing, $block);
-            $appended['id'] = $block->id;
+            $newBlocks = $this->buildTreeBlocks($owner, $field, $flatNew);
+            $this->persistTree($owner, $field, $existing, $newBlocks, $insertionIndex);
 
             return Response::success([
                 'entryId' => $owner->id,
                 'fieldHandle' => $field->handle,
-                'block' => $appended,
-                'diff' => NeoBlockPayload::diff($summaries, $appended),
+                'parentBlockId' => $parentBlockId,
+                'blocksCreated' => count($newBlocks),
+                'blockIds' => array_map(static fn (Block $block): ?int => $block->id, $newBlocks),
+                'diff' => NeoBlockTree::diff($summaries, $insertionIndex, $flatNew),
             ]);
         });
     }
@@ -144,6 +162,62 @@ class NeoContentTools implements ConditionalToolProvider {
         throw new ToolCallException(
             "Block type '{$handle}' not found on field '{$field->handle}'. Available block types: {$available}",
         );
+    }
+
+    /**
+     * Recursively validate a normalized tree against the field: every node's
+     * block type must exist, its field handles must be known, and any children
+     * must be permitted by the node's childBlocks rule.
+     *
+     * @param array<string, mixed> $node
+     * @throws ToolCallException
+     */
+    private function validateTree(NeoField $field, array $node): void {
+        $blockType = (string) $node['blockType'];
+        $blockTypeModel = $this->resolveBlockType($field, $blockType);
+
+        NeoBlockPayload::assertKnownHandles(
+            is_array($node['fields'] ?? null) ? $node['fields'] : [],
+            $this->allowedFieldHandles($blockTypeModel),
+            $blockType,
+        );
+
+        $children = is_array($node['children'] ?? null) ? $node['children'] : [];
+        if ($children === []) {
+            return;
+        }
+
+        $this->assertChildrenAllowed($blockTypeModel, $blockType, $children);
+
+        foreach ($children as $child) {
+            $this->validateTree($field, $child);
+        }
+    }
+
+    /**
+     * Assert a block type permits the given child payloads by its childBlocks
+     * rule.
+     *
+     * @param array<int, array<string, mixed>> $children
+     * @throws ToolCallException
+     */
+    private function assertChildrenAllowed(object $blockTypeModel, string $parentType, array $children): void {
+        $childBlocks = NeoSerializer::nesting($blockTypeModel)['childBlocks'] ?? null;
+
+        if (!NeoBlockTree::parentAllowsChildren($childBlocks)) {
+            throw new ToolCallException(
+                "Block type '{$parentType}' does not allow child blocks, but children were provided.",
+            );
+        }
+
+        foreach ($children as $child) {
+            $childType = (string) ($child['blockType'] ?? '');
+            if (!NeoBlockTree::childBlocksAllows($childBlocks, $childType)) {
+                throw new ToolCallException(
+                    "Block type '{$parentType}' does not allow child blocks of type '{$childType}'.",
+                );
+            }
+        }
     }
 
     /**
@@ -196,25 +270,123 @@ class NeoContentTools implements ConditionalToolProvider {
     }
 
     /**
-     * Create and save the new Neo block via Craft's element service.
+     * Resolve the insertion scope: either the top level, or inside an existing
+     * parent block (validated to exist and to permit the root child type).
      *
-     * @param array<string, mixed> $fieldValues
+     * @param array<int, array<string, mixed>> $summaries
+     * @param array<int, object> $existing
+     * @return array{start: int, end: int, level: int}
      * @throws ToolCallException
      */
-    private function saveBlock(
+    private function resolveScope(
+        array $summaries,
+        array $existing,
+        NeoField $field,
+        ?int $parentBlockId,
+        string $rootType,
+    ): array {
+        if ($parentBlockId === null) {
+            return ['start' => 0, 'end' => count($summaries), 'level' => 1];
+        }
+
+        $index = NeoBlockTree::findIndexById($summaries, $parentBlockId);
+        if ($index === null) {
+            throw new ToolCallException(
+                "Parent block ID {$parentBlockId} was not found in field '{$field->handle}'.",
+            );
+        }
+
+        $this->assertParentAccepts($existing[$index], $parentBlockId, $rootType);
+
+        return [
+            'start' => $index + 1,
+            'end' => NeoBlockTree::subtreeEnd($summaries, $index),
+            'level' => (int) ($summaries[$index]['level'] ?? 1) + 1,
+        ];
+    }
+
+    /**
+     * Assert an existing parent block permits a child of the given type.
+     *
+     * @throws ToolCallException
+     */
+    private function assertParentAccepts(object $parentBlock, int $parentBlockId, string $rootType): void {
+        $childBlocks = $this->childBlocksRule($parentBlock);
+
+        if (!NeoBlockTree::parentAllowsChildren($childBlocks)) {
+            throw new ToolCallException("Parent block {$parentBlockId} does not allow child blocks.");
+        }
+
+        if (!NeoBlockTree::childBlocksAllows($childBlocks, $rootType)) {
+            throw new ToolCallException(
+                "Parent block {$parentBlockId} does not allow child blocks of type '{$rootType}'.",
+            );
+        }
+    }
+
+    /**
+     * Read a block's childBlocks rule via its block type, duck-typed.
+     */
+    private function childBlocksRule(object $block): mixed {
+        if (!method_exists($block, 'getType')) {
+            return null;
+        }
+
+        try {
+            $type = $block->getType();
+        } catch (Throwable) {
+            return null;
+        }
+
+        if (!is_object($type)) {
+            return null;
+        }
+
+        return NeoSerializer::nesting($type)['childBlocks'] ?? null;
+    }
+
+    /**
+     * Build (unsaved) Block elements for a flattened tree, in preorder.
+     *
+     * @param array<int, array{type: string, level: int, fields: array<string, mixed>}> $flatNew
+     * @return array<int, Block>
+     * @throws ToolCallException
+     */
+    private function buildTreeBlocks(ElementInterface $owner, NeoField $field, array $flatNew): array {
+        $blocks = [];
+
+        foreach ($flatNew as $item) {
+            $blockTypeModel = $this->resolveBlockType($field, (string) $item['type']);
+            $blocks[] = $this->buildBlock(
+                $owner,
+                $field,
+                $blockTypeModel,
+                $item['fields'],
+                (int) $item['level'],
+            );
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * Create a single unsaved Neo Block element with its level and values set.
+     *
+     * @param array<string, mixed> $fieldValues
+     */
+    private function buildBlock(
         ElementInterface $owner,
         NeoField $field,
         object $blockTypeModel,
         array $fieldValues,
-        int $sortOrder,
+        int $level,
     ): Block {
         $block = new Block();
         $block->fieldId = $field->id;
         $block->typeId = $blockTypeModel->id;
         $block->ownerId = $owner->id;
         $block->siteId = $owner->siteId;
-        $block->level = 1;
-        $block->sortOrder = $sortOrder;
+        $block->level = $level;
         $block->enabled = true;
 
         // Craft 5 nested elements track a primary owner separately
@@ -230,34 +402,36 @@ class NeoContentTools implements ConditionalToolProvider {
             $block->setFieldValues($fieldValues);
         }
 
-        if (!Craft::$app->getElements()->saveElement($block)) {
-            throw new ToolCallException(
-                'Failed to save Neo block: ' . json_encode($block->getErrors()),
-            );
-        }
-
         return $block;
     }
 
     /**
-     * Resave the owner with the new block appended so Neo integrates it into
-     * the field's block structure (mirrors Neo's Field::saveValue flow).
+     * Splice the new blocks into the owner's existing block list at the
+     * resolved index and resave the owner so Neo rebuilds the field structure
+     * (levels + lft/rgt) from the ordered array (mirrors Neo Field::saveValue).
      *
      * @param array<int, object> $existing
+     * @param array<int, Block> $newBlocks
      * @throws ToolCallException
      */
-    private function integrateBlockIntoOwner(
+    private function persistTree(
         ElementInterface $owner,
         NeoField $field,
         array $existing,
-        Block $block,
+        array $newBlocks,
+        int $insertionIndex,
     ): void {
-        $owner->setFieldValue((string) $field->handle, [...$existing, $block]);
+        $merged = [
+            ...array_slice($existing, 0, $insertionIndex),
+            ...$newBlocks,
+            ...array_slice($existing, $insertionIndex),
+        ];
+
+        $owner->setFieldValue((string) $field->handle, $merged);
 
         if (!Craft::$app->getElements()->saveElement($owner)) {
             throw new ToolCallException(
-                "Neo block {$block->id} was saved but resaving the owner entry failed: "
-                . json_encode($owner->getErrors()),
+                'Failed to save Neo blocks: ' . json_encode($owner->getErrors()),
             );
         }
     }
