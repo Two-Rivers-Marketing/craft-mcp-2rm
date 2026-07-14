@@ -439,13 +439,47 @@ class NeoContentTools implements ConditionalToolProvider {
      * @throws ToolCallException
      */
     private function persistBlocks(ElementInterface $owner, NeoField $field, array $blocks): void {
-        $owner->setFieldValue((string) $field->handle, $blocks);
+        $owner->setFieldValue((string) $field->handle, $this->toNeoValue($blocks));
 
         if (!Craft::$app->getElements()->saveElement($owner)) {
             throw new ToolCallException(
                 'Failed to save Neo blocks: ' . json_encode($owner->getErrors()),
             );
         }
+    }
+
+    /**
+     * Serialize an ordered (preorder) list of Neo Block elements into the array
+     * shape Neo's Field::normalizeValue expects: a delta value of
+     * {blocks: {<id|newN> => {type, enabled, level, fields}}, sortOrder: [...]}.
+     *
+     * Passing Block elements straight to setFieldValue is NOT supported — Neo
+     * treats each as serialized array data and evaluates $block['type'], which
+     * returns the BlockType object and blows up as an array offset
+     * (Field.php "Cannot access offset of type ...BlockType"). Existing blocks
+     * keep their real id key so Neo updates them in place; new blocks (no id)
+     * get sequential newN keys so Neo creates them.
+     *
+     * @param array<int, object> $blocks
+     * @return array{blocks: array<string, array<string, mixed>>, sortOrder: array<int, string>}
+     */
+    private function toNeoValue(array $blocks): array {
+        $data = [];
+        $sortOrder = [];
+        $new = 0;
+
+        foreach ($blocks as $block) {
+            $key = $block->id ? (string) $block->id : 'new' . (++$new);
+            $data[$key] = [
+                'type' => $block->getType()->handle,
+                'enabled' => (bool) $block->enabled,
+                'level' => (int) $block->level,
+                'fields' => $block->getSerializedFieldValues(),
+            ];
+            $sortOrder[] = $key;
+        }
+
+        return ['blocks' => $data, 'sortOrder' => $sortOrder];
     }
 
     /**
