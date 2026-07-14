@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace twoRivers\craft\Mcp\support;
 
 use DateTimeInterface;
+use ReflectionProperty;
 use RuntimeException;
 use Throwable;
 use Traversable;
@@ -186,6 +187,19 @@ final class FreeformSerializer {
     }
 
     private static function submissionFieldValue(object $submission, string $handle): mixed {
+        // Freeform 5: $submission->{handle} yields the field object; its stored
+        // value comes from getValue(). getFieldValue($handle) is NOT the value
+        // accessor here (it throws "Invalid field handle"), so it is only a
+        // last-resort fallback for other Freeform versions.
+        $field = self::readDynamicProp($submission, $handle);
+        if (is_object($field) && method_exists($field, 'getValue')) {
+            return self::scalarize(self::readMethod($field, 'getValue'));
+        }
+
+        if ($field !== null && !is_object($field)) {
+            return self::scalarize($field);
+        }
+
         if (method_exists($submission, 'getFieldValue')) {
             try {
                 return self::scalarize($submission->getFieldValue($handle));
@@ -194,7 +208,23 @@ final class FreeformSerializer {
             }
         }
 
-        return self::scalarize(self::readProp($submission, $handle));
+        return null;
+    }
+
+    /**
+     * Read a value that a class exposes only through a magic getter (e.g. a
+     * Freeform submission's per-field-handle access), swallowing failures.
+     */
+    private static function readDynamicProp(object $object, string $name): mixed {
+        if (!property_exists($object, $name) && !method_exists($object, '__get')) {
+            return null;
+        }
+
+        try {
+            return $object->{$name};
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -359,13 +389,22 @@ final class FreeformSerializer {
      * yield null.
      */
     public static function readProp(object $object, string $name): mixed {
-        if (property_exists($object, $name)) {
+        // Only read a declared property directly when it is public; non-public
+        // properties (e.g. Freeform field $handle/$label) must go through their
+        // getter, or a bare $object->$name would hit __get / an access error.
+        if (property_exists($object, $name) && (new ReflectionProperty($object, $name))->isPublic()) {
             return $object->$name ?? null;
         }
 
         $getter = 'get' . ucfirst($name);
         if (method_exists($object, $getter)) {
             return self::readMethod($object, $getter);
+        }
+
+        // Boolean-style accessor (e.g. isRequired() for a "required" prop).
+        $isser = 'is' . ucfirst($name);
+        if (method_exists($object, $isser)) {
+            return self::readMethod($object, $isser);
         }
 
         if (method_exists($object, 'canGetProperty') && $object->canGetProperty($name)) {

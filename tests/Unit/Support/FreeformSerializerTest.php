@@ -36,6 +36,32 @@ describe('FreeformSerializer::readProp()', function () {
 
         expect(FreeformSerializer::readProp($obj, 'nope'))->toBeNull();
     });
+
+    it('prefers the getter over a NON-public property (Freeform field shape)', function () {
+        // Freeform fields declare $handle/$label protected with getHandle()/
+        // getLabel() accessors; reading the raw property must not win.
+        $obj = new class () {
+            protected string $handle = 'RAW-PROTECTED';
+
+            public function getHandle(): string {
+                return 'viaGetter';
+            }
+        };
+
+        expect(FreeformSerializer::readProp($obj, 'handle'))->toBe('viaGetter');
+    });
+
+    it('falls back to an is<Name>() accessor (isRequired for "required")', function () {
+        $obj = new class () {
+            protected bool $required = false;
+
+            public function isRequired(): bool {
+                return true;
+            }
+        };
+
+        expect(FreeformSerializer::readProp($obj, 'required'))->toBeTrue();
+    });
 });
 
 describe('FreeformSerializer::formSummary()', function () {
@@ -114,6 +140,39 @@ describe('FreeformSerializer::fieldLayout() and fieldSummary()', function () {
 
         expect(FreeformSerializer::fieldSummary($field)['type'])->toBe($field::class);
     });
+
+    it('serializes a real-shaped Freeform field (non-public props + getters + isRequired)', function () {
+        $field = new class () {
+            protected string $handle = 'name';
+
+            protected string $label = 'Name';
+
+            protected bool $required = true;
+
+            public function getHandle(): string {
+                return $this->handle;
+            }
+
+            public function getLabel(): string {
+                return $this->label;
+            }
+
+            public function isRequired(): bool {
+                return $this->required;
+            }
+
+            public function getType(): string {
+                return 'text';
+            }
+        };
+
+        expect(FreeformSerializer::fieldSummary($field))->toBe([
+            'handle' => 'name',
+            'type' => 'text',
+            'label' => 'Name',
+            'required' => true,
+        ]);
+    });
 });
 
 describe('FreeformSerializer::submissionSummary()', function () {
@@ -181,6 +240,31 @@ describe('FreeformSerializer::submissionFieldValues()', function () {
         $submission = makeFreeformStub([]);
 
         expect(FreeformSerializer::submissionFieldValues($submission, ['missing']))->toBe(['missing' => null]);
+    });
+
+    it('reads the value from a field object exposed via a magic getter (Freeform 5 shape)', function () {
+        // Freeform 5: $submission->{handle} returns the field object; the stored
+        // value is field->getValue(). getFieldValue() throws here, so it must
+        // not be the path taken.
+        $submission = new class () {
+            public function __get(string $name): object {
+                return new class ($name) {
+                    public function __construct(private string $name) {
+                    }
+
+                    public function getValue(): string {
+                        return "value-of-{$this->name}";
+                    }
+                };
+            }
+
+            public function getFieldValue(string $handle): mixed {
+                throw new RuntimeException("Invalid field handle: {$handle}");
+            }
+        };
+
+        expect(FreeformSerializer::submissionFieldValues($submission, ['name']))
+            ->toBe(['name' => 'value-of-name']);
     });
 });
 

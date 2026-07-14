@@ -104,7 +104,10 @@ class FreeformTools implements ConditionalToolProvider {
         }
 
         try {
-            return Submission::find()->formId((int) $formId)->status(null)->count();
+            // count() returns a string from the DB layer; cast to int or the
+            // ?int return type throws a TypeError under strict_types (silently
+            // swallowed by the catch, surfacing as a null count).
+            return (int) Submission::find()->formId((int) $formId)->status(null)->count();
         } catch (Throwable) {
             return null;
         }
