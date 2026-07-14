@@ -22,9 +22,9 @@ These arrived via a nightshift run (issues #5–#12); test suite 177 → 417 at 
 
 The entire Neo/Freeform/asset **write** surface was built duck-typed with **no live plugin install** in the dev env, so none of it had run against real Neo/Freeform until now. The active effort is a live-QA pass against the mbd install (Craft 5.10.5, Neo 5.5.10, Freeform 5.15.16), fixing what breaks, in this priority order:
 
-1. Freeform — **in progress** (4 bugs fixed; see [architecture/freeform-integration.md](../architecture/freeform-integration.md))
-2. Neo multi-level tree writes
-3. Neo scaffolding (`create_block_type`)
+1. Freeform — **done** (4 bugs fixed; see [architecture/freeform-integration.md](../architecture/freeform-integration.md))
+2. Neo multi-level tree writes — **done** (write suite fixed; see [architecture/neo-integration.md](../architecture/neo-integration.md))
+3. Neo scaffolding (`create_block_type`) — next
 4. Asset upload (GCS volume)
 5. Neo childBlocks / positioning edge cases
 

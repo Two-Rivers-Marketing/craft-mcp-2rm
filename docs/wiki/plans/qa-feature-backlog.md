@@ -13,9 +13,14 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 | `update_form` (edit fields/layout) | low | open | Depends on `create_form` landing first. |
 | `list_forms` submissionCount as JSON string elsewhere | low | open | `Serializer.php:101`, `AssetTools.php:75` return counts as strings — cosmetic consistency, not a crash. Cast to int if we care. |
 
-## Neo (not yet QA'd — items will land here as item 2+ proceeds)
+## Neo
 
-_(none yet — Freeform is item 1; Neo tree writes are item 2)_
+| Item | P | Status | Notes |
+| --- | --- | --- | --- |
+| Neo write suite crashed on save (all 4 tools) | high | **done** | `persistBlocks` passed Block objects; Neo wants serialized delta format. Fixed via `toNeoValue()`. Verified live (create/update/reorder/delete + nested-set integrity). See [../architecture/neo-integration.md](../architecture/neo-integration.md). |
+| `create_neo_block` returns `blockIds: [null,...]` | low | open | Neo creates fresh blocks from serialized data, so pre-save objects have no id. Re-query owner blocks post-save and diff vs pre-save id set to report real ids. |
+| Item 3: `create_block_type` scaffolding | — | not started | Next QA item (block-type service save, field-layout persistence, template stub). |
+| Item 5: childBlocks / positioning edge cases | — | not started | `before:`/`after:`, `parentBlockId` nesting, childBlocks permission shape. |
 
 ## Assets
 
