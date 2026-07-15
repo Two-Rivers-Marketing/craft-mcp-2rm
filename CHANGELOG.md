@@ -10,11 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2026-07-07
 
 ### Added
-- `logLevel` configuration option to control MCP server log verbosity (`storage/logs/mcp-server.log`). Set to `'debug'` for full tool dispatch logging. Default: `'error'` ([#10](https://github.com/stimmtdigital/craft-mcp/issues/10))
+- `logLevel` configuration option to control MCP server log verbosity (`storage/logs/mcp-server.log`). Set to `'debug'` for full tool dispatch logging. Default: `'error'` ([#10](https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/issues/10))
 - Debug logging in `tinker` tool for execution tracing, security blocks, and error diagnostics
 
 ### Fixed
-- `tinker` tool now wraps execution in `SafeExecution`, ensuring unexpected errors surface with real messages instead of the generic "Tool execution failed" ([#10](https://github.com/stimmtdigital/craft-mcp/issues/10))
+- `tinker` tool now wraps execution in `SafeExecution`, ensuring unexpected errors surface with real messages instead of the generic "Tool execution failed" ([#10](https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/issues/10))
 - Stray output (echo/print/PHP notices from tinker'd code or Craft) no longer corrupts the stdio JSON-RPC stream; it is rerouted to stderr via a non-removable output buffer in `bin/mcp-server`
 - `tinker` tool blocks unbounded `while (ob_get_level())` teardown loops, which would spin forever against the non-removable stdout shield
 - `tinker` tool now drains only output buffers it opened (baseline-aware): the previous `ob_get_level() > 0` guard closed outer buffers such as the stdout shield, clobbering the original error with an `ErrorException` when user code had closed the capture buffer
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.2] - 2026-03-04
 
 ### Fixed
-- `tinker` tool now releases mutex locks after execution, preventing project config deadlocks in long-running MCP process ([#7](https://github.com/stimmtdigital/craft-mcp/issues/7))
+- `tinker` tool now releases mutex locks after execution, preventing project config deadlocks in long-running MCP process ([#7](https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/issues/7))
 
 ### Added
 - `MutexGuard` support class for releasing Yii2 mutex locks and resetting Craft's internal lock state

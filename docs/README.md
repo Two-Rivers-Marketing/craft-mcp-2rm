@@ -42,10 +42,11 @@ If you're new to Craft MCP, we recommend following these steps:
 
 ## Quick Reference
 
-Install via Composer:
+Install via Composer, from the private VCS repository:
 
 ```bash
-composer require stimmt/craft-mcp
+composer config repositories.craft-mcp vcs https://github.com/Two-Rivers-Marketing/craft-mcp-2rm
+composer require 2rm/craft-mcp
 php craft plugin/install mcp
 ```
 
@@ -63,6 +64,5 @@ Connect your AI assistant by adding the server to your editor's MCP configuratio
 
 ## Links
 
-- [GitHub Repository](https://github.com/stimmtdigital/craft-mcp)
-- [Report Issues](https://github.com/stimmtdigital/craft-mcp/issues)
-- [Stimmt Digital](https://stimmt.digital)
+- [GitHub Repository](https://github.com/Two-Rivers-Marketing/craft-mcp-2rm)
+- [Report Issues](https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/issues)

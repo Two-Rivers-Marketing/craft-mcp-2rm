@@ -11,14 +11,14 @@ composer test                 # Pest (fast, <1s)
 composer test:unit            # Unit suite only
 vendor/bin/pest --filter=Foo  # single file/group
 vendor/bin/pint <files>       # auto-format (lint your OWN touched files)
-vendor/bin/phpstan analyse --memory-limit=1G   # NOT `composer analyse` — see gotchas
+composer analyse              # phpstan (memory limit already set)
 ```
 
 Tests need dev deps: `composer install` (pulls Craft + tooling; `vendor/` is gitignored).
 
 ## Gotchas
 
-- **phpstan OOMs at the default 128M.** The `composer analyse` / `composer ci` scripts run plain `phpstan analyse` and die. Always `vendor/bin/phpstan analyse --memory-limit=1G`.
+- **phpstan needs `--memory-limit=1G`** (OOMs at PHP's default 128M). `composer analyse` / `composer ci` already pass it; add it yourself when invoking `vendor/bin/phpstan` directly.
 - **Repo-wide `composer lint:test` fails** on 4 pre-existing files (`DebugTools`, `GraphqlTools`, `TinkerTools`, `DatabaseTools`). Not yours to fix — run `vendor/bin/pint` on the specific files you touched.
 - **Custom phpstan rules are enforced** (`sanmai/phpstan-rules`, level 5): `NoElse`, `NoNestedIfStatements`, `NoNestedLoops`, `RequireGuardClauses`. Write guard-clause style (early returns, no `else`, no nested `if`/loops) or analysis fails.
 - **`strict_types` + Yii `count()`:** query `->count()` returns a **string**. Returning it into an `int`/`?int` throws `TypeError`. Always `(int)`-cast.

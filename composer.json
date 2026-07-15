@@ -60,8 +60,8 @@
     "extra": {
         "handle": "mcp",
         "name": "Craft MCP",
-        "developer": "Stimmt Digital",
-        "documentationUrl": "https://github.com/stimmtdigital/craft-mcp",
+        "developer": "2RM",
+        "documentationUrl": "https://github.com/Two-Rivers-Marketing/craft-mcp-2rm",
         "class": "twoRivers\\craft\\Mcp\\Mcp"
     },
     "bin": ["bin/mcp-server"],
@@ -92,7 +92,7 @@
         "test:coverage": "pest --coverage --min=80",
         "test:type": "pest --type-coverage --min=90",
         "test:arch": "pest --filter=Arch",
-        "analyse": "phpstan analyse",
+        "analyse": "phpstan analyse --memory-limit=1G",
         "ci": [
             "@lint:test",
             "@analyse",
