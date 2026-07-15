@@ -9,6 +9,9 @@ How the `FreeformTools` / `FreeformSerializer` classes talk to Freeform, and the
 - **Field object accessors:** `getHandle()`, `getLabel()`, `getType()`, `isRequired()`. The `$handle`/`$label`/`$required` **properties are non-public** — you must use the getters.
 - **Submission:** `Solspace\Freeform\Elements\Submission` — a real Craft element. `Submission::find()->formId($id)->status(null)->count()/->all()` works like any element query.
 - **Submission field values:** `$submission->{$handle}` (magic getter) returns the **field object**, whose value is `->getValue()` (also `getValueAsString()`). `$submission->getFieldValue($handle)` does **not** return the value — it throws `Invalid field handle`.
+- **Notifications:** `Freeform::getInstance()->notifications->getAllFormNotifications()` → all form-scoped `NotificationTemplateRecord`s **across every form** (it takes no args; the query is `where(['not', ['formId' => null]])`). Filter by `->formId` to scope to one form. Record attributes (Yii ActiveRecord magic props): `id`, `handle`, `name`, `formId`, `subject`, `fromName`, `fromEmail`, `replyToEmail`, `cc`, `bcc`, `bodyHtml`, …
+- **Element connections & spam are "integrations".** `Freeform::getInstance()->integrations->getForForm($form, $type)` → the form's integrations of a type **category**. Categories (from `getAllIntegrationTypes()[*]->type`): `elements`, `single`, `captchas`, `spam-blocking`, `email-marketing`, `crm`, `ai`, `webhooks`, `payment-gateways`, `other`. **Element connections** (submission → created Craft entry/element, the "why didn't this create an entry" mechanism) are type **`elements`**. Spam protection is types **`captchas`** + **`spam-blocking`**. An unknown/empty type returns `[]` (no throw).
+- **Integration object accessors:** `getId()`, `getHandle()`, `getName()`, `isEnabled()`, and `getTypeDefinition()` → a `Solspace\Freeform\Attributes\Integration\Type` whose public `->type` holds the category string.
 
 ## Bugs found & fixed (2026-07-14)
 
@@ -29,9 +32,16 @@ Any method returning a Yii/Craft query `count()` directly into an `int`/`?int` r
 
 The `tinker` tool (psysh) does **not** apply `strict_types`, so strict-type bugs and other mode-dependent behavior won't reproduce there. Confirm fixes to typed code via the Pest suite (fresh strict process) or a live SIGHUP-reloaded server, not only tinker.
 
-## Known-still-broken
+## get_form settings sections (fixed 2026-07-15)
 
-- **`get_form` `notifications` / `connections` / `spamSettings` all return null.** The `FreeformSerializer::sectionAttributes()` keyword-dump approach doesn't hit Freeform 5's real structure (notifications/integrations live in dedicated services, not flat form attributes). This defeats the tool's stated "why didn't this submission create an entry" purpose. Not yet fixed — see [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
+`get_form`'s `notifications` / `connections` / `spamSettings` used to return `null` — the old `FreeformSerializer::sectionAttributes()` keyword-dump over flat form attributes didn't match Freeform 5's structure (these live in dedicated services, not on the form). Now resolved against the real API above:
+
+- `FreeformTools::getForm()` fetches the three collections (notifications filtered by formId; `elements` integrations for connections; `captchas`+`spam-blocking` for spam) and passes the raw objects to `FreeformSerializer::form()`.
+- `FreeformSerializer::form()` shapes them via `notification()` / `integration()` item serializers, staying a pure duck-typed reader (no Freeform dependency, unit-testable with stubs). Each service read degrades to `[]` on failure rather than throwing.
+- Each section is now a **list** (empty = nothing configured), never `null` from a failed lookup. An empty `connections` list means the form creates no Craft element — the answer to "why didn't this submission create an entry".
+- The dead `sectionAttributes()`/`matchesAnyKeyword()`/`attributesOf()` helpers were removed.
+
+Live-verified against mbd `contactForm` (id 3): `connections: []`, `spamSettings: [{handle: recaptcha, type: captchas, enabled: true}]`, `notifications: []`.
 
 ## Cross-references
 
