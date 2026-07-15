@@ -3,10 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/stimmtdigital/craft-mcp/actions/workflows/ci.yml"><img src="https://github.com/stimmtdigital/craft-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://packagist.org/packages/stimmt/craft-mcp"><img src="https://img.shields.io/packagist/dt/stimmt/craft-mcp" alt="Total Downloads"></a>
-  <a href="https://packagist.org/packages/stimmt/craft-mcp"><img src="https://img.shields.io/packagist/v/stimmt/craft-mcp" alt="Latest Stable Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/packagist/l/stimmt/craft-mcp" alt="License"></a>
+  <a href="https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/actions/workflows/ci.yml"><img src="https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
 </p>
 
 ## Introduction
@@ -19,10 +17,11 @@ The tools span content management (entries, assets, categories, users), schema i
 
 ## Installation
 
-Craft MCP can be installed via Composer:
+Craft MCP is a private fork, distributed via VCS rather than Packagist. Add the repository to your project's `composer.json`, then require it:
 
 ```bash
-composer require stimmt/craft-mcp
+composer config repositories.craft-mcp vcs https://github.com/Two-Rivers-Marketing/craft-mcp-2rm
+composer require 2rm/craft-mcp
 ```
 
 Next, install the plugin through Craft's CLI:
@@ -77,7 +76,7 @@ Options:
   "mcpServers": {
     "craft-cms": {
       "command": "ddev",
-      "args": ["exec", "php", "vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["exec", "php", "vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -92,7 +91,7 @@ Options:
   "mcpServers": {
     "craft-cms": {
       "command": "php",
-      "args": ["vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -112,7 +111,7 @@ Options:
   "mcpServers": {
     "craft-cms": {
       "command": "ddev",
-      "args": ["exec", "php", "vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["exec", "php", "vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -127,7 +126,7 @@ Options:
   "mcpServers": {
     "craft-cms": {
       "command": "php",
-      "args": ["vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -149,7 +148,7 @@ Options:
   "mcpServers": {
     "craft-cms": {
       "command": "/usr/local/bin/ddev",
-      "args": ["exec", "php", "vendor/stimmt/craft-mcp/bin/mcp-server"],
+      "args": ["exec", "php", "vendor/2rm/craft-mcp/bin/mcp-server"],
       "cwd": "/path/to/your/craft/project"
     }
   }
@@ -165,7 +164,7 @@ Options:
   "mcpServers": {
     "craft-cms": {
       "command": "/usr/bin/php",
-      "args": ["vendor/stimmt/craft-mcp/bin/mcp-server"],
+      "args": ["vendor/2rm/craft-mcp/bin/mcp-server"],
       "cwd": "/path/to/your/craft/project"
     }
   }
@@ -190,7 +189,7 @@ For development environments on remote servers, you can tunnel through SSH. Note
       "args": [
         "-t",
         "user@your-server.com",
-        "cd /path/to/craft/project && php vendor/stimmt/craft-mcp/bin/mcp-server"
+        "cd /path/to/craft/project && php vendor/2rm/craft-mcp/bin/mcp-server"
       ]
     }
   }
@@ -313,7 +312,7 @@ See the [Extending Guide](docs/extending.md) for implementation details, code ex
 
 ## Contributing
 
-Thank you for considering contributing to Craft MCP! Please see [GitHub Issues](https://github.com/stimmtdigital/craft-mcp/issues) for bug reports, feature requests, and discussion.
+Thank you for considering contributing to Craft MCP! Please see [GitHub Issues](https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/issues) for bug reports, feature requests, and discussion.
 
 ## Credits
 

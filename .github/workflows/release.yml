@@ -53,7 +53,7 @@ jobs:
             ### Installation
 
             ```bash
-            composer require stimmt/craft-mcp:^${{ steps.version.outputs.version }}
+            composer require 2rm/craft-mcp:^${{ steps.version.outputs.version }}
             ```
           draft: false
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}

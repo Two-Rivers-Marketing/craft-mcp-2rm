@@ -13,12 +13,13 @@ The plugin is compatible with all database drivers supported by Craft CMS (MySQL
 
 ## Install via Composer
 
-### From Packagist
+### From the Private Repository
 
-The recommended way to install Craft MCP is via Composer from Packagist:
+Craft MCP is a private fork, not published to Packagist. Add the VCS repository to your project's `composer.json`, then require it:
 
 ```bash
-composer require stimmt/craft-mcp
+composer config repositories.craft-mcp vcs https://github.com/Two-Rivers-Marketing/craft-mcp-2rm
+composer require 2rm/craft-mcp
 ```
 
 After Composer finishes downloading the package, install the plugin through Craft's CLI:
@@ -36,7 +37,7 @@ If you're contributing to Craft MCP or developing it locally, you can install fr
 composer config repositories.craft-mcp path ./plugins/craft-mcp
 
 # Require the package with dev stability
-composer require stimmt/craft-mcp:@dev
+composer require 2rm/craft-mcp:@dev
 
 # Install the plugin in Craft
 php craft plugin/install mcp
@@ -129,7 +130,7 @@ Claude Code looks for MCP server configurations in a `.mcp.json` file in your pr
   "mcpServers": {
     "craft-cms": {
       "command": "ddev",
-      "args": ["exec", "php", "vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["exec", "php", "vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -144,7 +145,7 @@ Claude Code looks for MCP server configurations in a `.mcp.json` file in your pr
   "mcpServers": {
     "craft-cms": {
       "command": "php",
-      "args": ["vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -167,7 +168,7 @@ Cursor stores MCP configurations in a `.cursor/mcp.json` file within your projec
   "mcpServers": {
     "craft-cms": {
       "command": "ddev",
-      "args": ["exec", "php", "vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["exec", "php", "vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -182,7 +183,7 @@ Cursor stores MCP configurations in a `.cursor/mcp.json` file within your projec
   "mcpServers": {
     "craft-cms": {
       "command": "php",
-      "args": ["vendor/stimmt/craft-mcp/bin/mcp-server"]
+      "args": ["vendor/2rm/craft-mcp/bin/mcp-server"]
     }
   }
 }
@@ -206,7 +207,7 @@ Claude Desktop uses a global configuration file rather than a project-specific o
   "mcpServers": {
     "craft-cms": {
       "command": "/usr/local/bin/ddev",
-      "args": ["exec", "php", "vendor/stimmt/craft-mcp/bin/mcp-server"],
+      "args": ["exec", "php", "vendor/2rm/craft-mcp/bin/mcp-server"],
       "cwd": "/path/to/your/craft/project"
     }
   }
@@ -224,7 +225,7 @@ Replace `/usr/local/bin/ddev` with the actual path to your DDEV installation (fi
   "mcpServers": {
     "craft-cms": {
       "command": "/usr/bin/php",
-      "args": ["vendor/stimmt/craft-mcp/bin/mcp-server"],
+      "args": ["vendor/2rm/craft-mcp/bin/mcp-server"],
       "cwd": "/path/to/your/craft/project"
     }
   }
