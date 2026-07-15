@@ -10,7 +10,7 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 | --- | --- | --- | --- |
 | `create_form` write tool | med | **done** (pending live verify) | v1 shipped (issue #19): `FreeformScaffoldTools::create_form`, single-page, 6 field types. Creation API + gotchas in [architecture/freeform-integration.md](../architecture/freeform-integration.md); see [decision](../decisions/implemented/2026-07-15-create-form-tool.md). Live-verify (create form + submission after SIGHUP) still open. |
 | `get_form` notifications/connections/spamSettings return null | high | open | Keyword-dump approach misses Freeform 5's real structure; defeats "why didn't this submission create an entry". Needs real service reads. See [architecture/freeform-integration.md](../architecture/freeform-integration.md). |
-| `update_form` (edit fields/layout) | low | open | Depends on `create_form` landing first. |
+| `update_form` (edit fields/layout) | low | **done** (pending live verify) | v1 shipped (issue #20): `FreeformScaffoldTools::update_form`, add/remove/reorder fields on an existing single-page form, matched by handle, reusing UID for kept fields so submission data survives. Fields outside the v1 type subset are always preserved untouched. UID-preservation semantics + gotchas in [architecture/freeform-integration.md](../architecture/freeform-integration.md); see [decision](../decisions/implemented/2026-07-15-update-form-tool.md). Live-verify (add/remove/reorder + post-edit submission read after SIGHUP) still open. |
 | `list_forms` submissionCount as JSON string elsewhere | low | open | `Serializer.php:101`, `AssetTools.php:75` return counts as strings — cosmetic consistency, not a crash. Cast to int if we care. |
 
 ## Neo

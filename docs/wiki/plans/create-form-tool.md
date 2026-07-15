@@ -1,6 +1,6 @@
 # Plan: `create_form` — Freeform form creation tool
 
-**Status:** v1 implemented 2026-07-15 (issue #19) — pending live verification. See [decisions/implemented/2026-07-15-create-form-tool.md](../decisions/implemented/2026-07-15-create-form-tool.md).
+**Status:** `create_form` v1 implemented 2026-07-15 (issue #19); `update_form` v1 implemented 2026-07-15 (issue #20) — both pending live verification. See [decisions/implemented/2026-07-15-create-form-tool.md](../decisions/implemented/2026-07-15-create-form-tool.md) and [decisions/implemented/2026-07-15-update-form-tool.md](../decisions/implemented/2026-07-15-update-form-tool.md).
 **Raised:** 2026-07-14, during Freeform live-QA
 **Motivation:** The Freeform surface is read + submission-management only. There is no way to create (or edit) a form via MCP, unlike Neo which has `create_block_type` / `create_neo_block`.
 
@@ -23,7 +23,7 @@ Ship a **minimal single-page form creator** first; expand only as real use cases
 
 ### Later (only if needed)
 
-- `update_form` (add/remove/reorder fields).
+- ~~`update_form` (add/remove/reorder fields).~~ Implemented 2026-07-15 (issue #20) — see [decisions/implemented/2026-07-15-update-form-tool.md](../decisions/implemented/2026-07-15-update-form-tool.md). Scope: single-page forms only, v1 field-type subset; fields of other types are always left untouched (never removable via this tool).
 - Notification + element-connection config (depends on first nailing how to *read* them — currently broken; see backlog).
 - Multi-page / conditional logic.
 

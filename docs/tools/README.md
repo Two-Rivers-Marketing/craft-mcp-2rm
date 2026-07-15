@@ -155,6 +155,7 @@ Some tools can modify data or execute code, which may not be appropriate in all 
 | `create_entry` | Medium | Creates new entries in your content |
 | `update_entry` | Medium | Modifies existing entry content and fields |
 | `create_form` | Medium | Creates a Freeform form (schema/content structure); requires Freeform |
+| `update_form` | Medium | Adds/removes/reorders fields on an existing single-page Freeform form; requires Freeform |
 | `create_backup` | Medium | Creates files on the server filesystem |
 | `clear_caches` | Low | Clears caches, which can temporarily impact site performance |
 

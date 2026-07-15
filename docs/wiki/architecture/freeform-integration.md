@@ -88,6 +88,94 @@ Memo after persist via reflection (`FormsService` exposes no public clear), full
 and echo-only. Mirrors Neo's `flushBlockTypeCaches()` — see
 [neo-integration.md](neo-integration.md#long-running-server-cache-hazards-audit-26).
 
+## `update_form` — editing an existing form (verified 2026-07-15, issue #20)
+
+Reverse-engineered read-only against live Freeform 5.15.16 (mbd form id 3,
+"Contact Form", 7 fields / 6 rows / 1 page) — the same events as `create_form`,
+but with an existing form id, plus a UID-preservation contract that isn't
+needed on create. All of this was traced via `tinker` (reading Freeform's own
+source and querying its tables directly) and `run_query`; no writes were made.
+
+**Update vs. create entry point.** `FormsController::post($id)` — the same CP
+endpoint create_form's docs above describe — branches on whether `$id` is
+null: `new PersistFormEvent($payload, $id)`, then trigger `EVENT_UPDATE_FORM`
+(not `EVENT_CREATE_FORM`) followed by the same `EVENT_UPSERT_FORM`.
+`FormPersistence::handleFormUpdate()` loads the `FormRecord` by
+`$event->getFormId()` (there is no `handleFormCreate`-style `payload->uid`
+lookup on update — the uid in the payload's `form` object is ignored).
+
+**Submission data lives in a per-form content table, keyed by field id, not
+handle or uid.** Each form has its own table
+`freeform_submissions_<handle>_<formId>` with one column per storable field,
+named `<handle>_<fieldId>` (verified: form 3's table has `email_10`,
+`project_state_13`, etc. — field id 10's column is literally named with `10`
+in it). `FormContentTable` (an `EVENT_UPSERT_FORM` listener, priority 305,
+after `LayoutPersistence`'s 300) reads `$event->getFieldRecords()` — the
+fields `LayoutPersistence` successfully saved this request — and calls
+`ContentManager::performDatabaseColumnAlterations()`, which for each **current**
+field id: renames its column if the handle changed (same id → no data loss),
+adds a column if the id is new, and **drops the column** for any id no longer
+present. This happens automatically once the same two events `create_form`
+already triggers fire — no extra step needed on our side.
+
+**UID reuse is what keeps a field's id (and column) the same across a save.**
+`LayoutPersistence::handleLayoutSave()` (also on `EVENT_UPSERT_FORM`) diffs the
+payload's `pages`/`layouts`/`rows`/`fields` arrays against the form's current
+records **by `uid`**, per record type independently
+(`getStarterPack()`/`getRecords()`, all scoped `where(['formId' => ...])`):
+a uid present in both is updated in place (`$record = $existingRecords[$uid]`,
+same underlying DB id — so `FormFieldRecord.id` and hence the content column
+survive); a uid present in the payload but not the DB is inserted as new; a
+uid in the DB but **absent from the payload** is deleted
+(`$existingRecords[$staleUid]->delete()`). This applies independently to
+pages, layouts, rows, and fields — so **any existing row not included in the
+payload's `rows` array is deleted, even if some field still (incorrectly)
+points at it**, meaning every row referenced by any field you're keeping must
+also be included in `rows`.
+
+Confirmed live (`SELECT id, formId, rowId, order, type, uid FROM
+freeform_forms_fields WHERE formId = 3`): fields can share a row (id 12 and 13
+both `rowId = 14`, orders 0/1 — a CP-built side-by-side layout) — reusing a
+kept field's exact `rowUid` (not assigning it a fresh solo row) preserves that
+grouping automatically without any extra bookkeeping.
+
+**Practical consequence for `update_form`:** add = new uid (empty new column).
+Remove = uid omitted (column dropped, submission data for that field lost —
+intentional). Reorder = same uid, new `order`/row placement (zero content
+impact — order isn't part of the content table at all).
+
+**Fields outside the v1 type subset must never be silently "removed" by
+omission.** A CP-built form can have field types `create_form`/`update_form`
+don't support (file upload, signature, group, table, rating, etc. — see the
+full `FieldInterface::TYPE_*` list). Since `update_form`'s `fields` input is a
+*complete* desired list, a caller who doesn't know about (or isn't trying to
+touch) such a field would otherwise have it silently deleted. `update_form`
+resolves this by never matching or removing a field whose stored `type`
+doesn't reverse-map to a v1 keyword (`FreeformFormPlan::resolveExistingType()`)
+— those fields are always carried through unchanged in the payload. If one of
+them shares a row with a field the caller *is* editing, the tool refuses the
+whole update rather than guess how to split or preserve that row.
+
+**Form-level settings must be echoed back verbatim.**
+`FormPersistence::getValidatedMetadata()` iterates **every** settings
+namespace (`SettingsProvider::getSettingNamespaces()` — verified live: only
+`general` and `behavior` exist in 5.15.16) and for any property missing from
+`payload->settings->{namespace}->{property}` falls back to that property's
+**type default**, not the form's current value. `create_form` only ever sends
+`general` because there's nothing to lose on a brand-new form; `update_form`
+must instead read `craft_freeform_forms.metadata` (confirmed shape:
+`{"behavior": {...11 properties...}, "general": {...13 properties...}}`),
+`json_decode()` it **without** the assoc flag (so `->` property access works
+for `getValidatedMetadata()`'s reads — JSON arrays still decode to plain PHP
+arrays regardless, only `{}` objects need the stdClass form), and pass the
+whole decoded object through as `payload.form.settings` untouched. Skipping
+this would silently reset `behavior` (success message, redirect URL, spam
+duplicate-check window, etc.) to defaults on every `update_form` call.
+
+**Page settings (buttons, label) are similarly echoed back unchanged** by
+reading `freeform_forms_pages.metadata` (shape `{"buttons": {...}}`) directly,
+since `update_form` v1 never edits page-level settings.
+
 ## Known-still-broken
 
 - **`get_form` `notifications` / `connections` / `spamSettings` all return null.** The `FreeformSerializer::sectionAttributes()` keyword-dump approach doesn't hit Freeform 5's real structure (notifications/integrations live in dedicated services, not flat form attributes). This defeats the tool's stated "why didn't this submission create an entry" purpose. Not yet fixed — see [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
