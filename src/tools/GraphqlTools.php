@@ -9,10 +9,10 @@ use craft\models\GqlSchema;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
+use Throwable;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\SafeExecution;
-use Throwable;
 
 /**
  * GraphQL tools for Craft CMS.

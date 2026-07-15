@@ -12,12 +12,12 @@ use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
 use ReflectionClass;
 use ReflectionFunction;
+use Throwable;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\FileHelper;
 use twoRivers\craft\Mcp\support\SafeExecution;
 use twoRivers\craft\Mcp\support\SqlReadGuard;
-use Throwable;
 use yii\base\Event;
 
 /**

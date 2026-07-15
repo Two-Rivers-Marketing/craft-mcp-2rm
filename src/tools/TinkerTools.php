@@ -14,15 +14,15 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Psy\CodeCleaner;
 use Psy\Exception\ParseErrorException;
+use Symfony\Component\VarDumper\Cloner\VarCloner;
+use Symfony\Component\VarDumper\Dumper\CliDumper;
+use Throwable;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\enums\OutputMode;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\Ansi;
 use twoRivers\craft\Mcp\support\MutexGuard;
 use twoRivers\craft\Mcp\support\SafeExecution;
-use Symfony\Component\VarDumper\Cloner\VarCloner;
-use Symfony\Component\VarDumper\Dumper\CliDumper;
-use Throwable;
 
 /**
  * Tinker tool for executing PHP code within Craft context.
