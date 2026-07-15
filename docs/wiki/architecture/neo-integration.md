@@ -58,7 +58,7 @@ Because Neo creates fresh records from the serialized/project-config data, the p
 
 ### Known limitations (backlog)
 
-- **`create_block_type` stub hardcodes a `columnItem` children loop** regardless of the actual `childBlockTypes`. It's a scaffold for the dev to edit, so low priority.
+- ~~**`create_block_type` stub hardcodes a `columnItem` children loop** regardless of the actual `childBlockTypes`.~~ **Resolved (#24):** `BlockTypeStub` now honors the declared child types — `columnItem` children keep the columnItem-include loop; other child types dispatch to their module partial via `columnItemPaths` (a single declared type is included by name, a mix dispatches on `item.type.handle`). Still a dev-editable scaffold.
 
 ## Cross-references
 
