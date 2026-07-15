@@ -115,7 +115,7 @@ class NeoContentTools implements ConditionalToolProvider {
                 'fieldHandle' => $field->handle,
                 'parentBlockId' => $parentBlockId,
                 'blocksCreated' => count($newBlocks),
-                'blockIds' => array_map(static fn (Block $block): ?int => $block->id, $newBlocks),
+                'blockIds' => $this->createdBlockIds($owner, $field, $summaries),
                 'diff' => NeoBlockTree::diff($summaries, $insertionIndex, $flatNew),
             ]);
         });
@@ -480,6 +480,39 @@ class NeoContentTools implements ConditionalToolProvider {
         }
 
         return ['blocks' => $data, 'sortOrder' => $sortOrder];
+    }
+
+    /**
+     * Resolve the real IDs of just-created blocks by re-reading the owner's
+     * Neo blocks after the save and diffing against the pre-save summaries.
+     *
+     * Neo creates fresh block records from the serialized delta value, so the
+     * pre-save Block objects never receive IDs — the post-save re-read is the
+     * only source of truth. A fresh owner element is fetched so the read does
+     * not hit the field value memoized on the just-saved element. Echo-only:
+     * failures degrade to an empty list rather than failing the (already
+     * persisted) create.
+     *
+     * @param array<int, array<string, mixed>> $preSaveSummaries
+     * @return array<int, int>
+     */
+    private function createdBlockIds(ElementInterface $owner, NeoField $field, array $preSaveSummaries): array {
+        try {
+            $fresh = Craft::$app->getElements()->getElementById((int) $owner->id, null, $owner->siteId);
+        } catch (Throwable) {
+            return [];
+        }
+
+        if ($fresh === null) {
+            return [];
+        }
+
+        $afterFlat = array_map(
+            NeoBlockPayload::summarizeBlock(...),
+            $this->existingBlocks($fresh, (string) $field->handle),
+        );
+
+        return NeoBlockTree::newBlockIds($preSaveSummaries, $afterFlat);
     }
 
     /**

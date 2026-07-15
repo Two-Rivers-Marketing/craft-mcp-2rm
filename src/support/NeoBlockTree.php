@@ -312,13 +312,15 @@ final class NeoBlockTree {
     /**
      * Whether a block type's childBlocks rule permits any children at all.
      *
-     * Neo stores childBlocks as `'*'`/true (any), a list of allowed handles,
-     * or false/empty (none). An unreadable rule (null) is treated leniently as
-     * "allowed" so unknowns never block a legitimate tree — only an explicit
-     * false or empty list is a hard "no children".
+     * Neo stores childBlocks as `'*'`/true (any) or a non-empty list of
+     * allowed handles when child blocks are enabled, and null/false/empty when
+     * they are not. A leaf block type reports childBlocks as **null** (verified
+     * against Neo 5.5), so null must be treated as a hard "no children" — the
+     * same as false or an empty list — otherwise illegal nesting under any leaf
+     * slips through.
      */
     public static function parentAllowsChildren(mixed $childBlocks): bool {
-        if ($childBlocks === false) {
+        if ($childBlocks === false || $childBlocks === null) {
             return false;
         }
 
@@ -332,15 +334,15 @@ final class NeoBlockTree {
     /**
      * Whether a block type's childBlocks rule permits a specific child type.
      *
-     * A list of handles is checked for membership; anything else that is not
-     * an explicit false (true, '*', or an unreadable null) permits the type.
+     * A list of handles is checked for membership; `true`/`'*'` permit any
+     * type; an explicit false or a leaf's null permit none.
      */
     public static function childBlocksAllows(mixed $childBlocks, string $childType): bool {
         if (is_array($childBlocks)) {
             return in_array($childType, $childBlocks, true);
         }
 
-        return $childBlocks !== false;
+        return $childBlocks !== false && $childBlocks !== null;
     }
 
     /**
@@ -426,6 +428,45 @@ final class NeoBlockTree {
                 'blocks' => array_values($removed),
             ],
         ];
+    }
+
+    /**
+     * Diff a post-save flattened block list against the pre-save list and
+     * return the IDs of the newly created blocks, in document (lft) order.
+     *
+     * Neo creates fresh block records from the serialized delta value, so the
+     * pre-save Block objects never receive IDs — re-reading the owner after
+     * the save and diffing against the pre-save ID set is the only way to
+     * report the real IDs, and it is robust to any insertion position.
+     *
+     * @param array<int, array<string, mixed>> $beforeFlat Summaries before the save (see NeoBlockPayload::summarizeBlock())
+     * @param array<int, array<string, mixed>> $afterFlat Summaries after the save, in document order
+     * @return array<int, int>
+     */
+    public static function newBlockIds(array $beforeFlat, array $afterFlat): array {
+        $known = [];
+
+        foreach ($beforeFlat as $block) {
+            if (!is_numeric($block['id'] ?? null)) {
+                continue;
+            }
+
+            $known[(int) $block['id']] = true;
+        }
+
+        $created = [];
+
+        foreach ($afterFlat as $block) {
+            $id = $block['id'] ?? null;
+
+            if (!is_numeric($id) || isset($known[(int) $id])) {
+                continue;
+            }
+
+            $created[] = (int) $id;
+        }
+
+        return $created;
     }
 
     /**

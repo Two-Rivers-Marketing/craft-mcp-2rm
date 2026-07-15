@@ -8,12 +8,12 @@ use Craft;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
+use Throwable;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\Response;
 use twoRivers\craft\Mcp\support\SafeExecution;
 use twoRivers\craft\Mcp\support\SqlReadGuard;
-use Throwable;
 
 /**
  * Database-related MCP tools for Craft CMS.

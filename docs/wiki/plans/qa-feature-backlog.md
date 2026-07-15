@@ -8,9 +8,9 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 
 | Item | P | Status | Notes |
 | --- | --- | --- | --- |
-| `create_form` write tool | med | scoped | No form creation exists. Scoped in [create-form-tool.md](create-form-tool.md); deferred per [decision](../decisions/deferred/2026-07-14-freeform-write-tools.md). Start minimal (single-page). |
+| `create_form` write tool | med | **done** (pending live verify) | v1 shipped (issue #19): `FreeformScaffoldTools::create_form`, single-page, 6 field types. Creation API + gotchas in [architecture/freeform-integration.md](../architecture/freeform-integration.md); see [decision](../decisions/implemented/2026-07-15-create-form-tool.md). Live-verify (create form + submission after SIGHUP) still open. |
 | `get_form` notifications/connections/spamSettings return null | high | open | Keyword-dump approach misses Freeform 5's real structure; defeats "why didn't this submission create an entry". Needs real service reads. See [architecture/freeform-integration.md](../architecture/freeform-integration.md). |
-| `update_form` (edit fields/layout) | low | open | Depends on `create_form` landing first. |
+| `update_form` (edit fields/layout) | low | **done** (pending live verify) | v1 shipped (issue #20): `FreeformScaffoldTools::update_form`, add/remove/reorder fields on an existing single-page form, matched by handle, reusing UID for kept fields so submission data survives. Fields outside the v1 type subset are always preserved untouched. UID-preservation semantics + gotchas in [architecture/freeform-integration.md](../architecture/freeform-integration.md); see [decision](../decisions/implemented/2026-07-15-update-form-tool.md). Live-verify (add/remove/reorder + post-edit submission read after SIGHUP) still open. |
 | `list_forms` submissionCount as JSON string elsewhere | low | open | `Serializer.php:101`, `AssetTools.php:75` return counts as strings — cosmetic consistency, not a crash. Cast to int if we care. |
 
 ## Neo
@@ -18,15 +18,17 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 | Item | P | Status | Notes |
 | --- | --- | --- | --- |
 | Neo write suite crashed on save (all 4 tools) | high | **done** | `persistBlocks` passed Block objects; Neo wants serialized delta format. Fixed via `toNeoValue()`. Verified live (create/update/reorder/delete + nested-set integrity). See [../architecture/neo-integration.md](../architecture/neo-integration.md). |
-| `create_neo_block` returns `blockIds: [null,...]` / `create_block_type` returns `blockType.id: null` | low | open | Neo creates fresh records from serialized/PC data, so pre-save objects have no id. Re-query post-save to report real ids. |
+| `create_neo_block` returns `blockIds: [null,...]` / `create_block_type` returns `blockType.id: null` | low | **done** (#23, pending live re-verify) | Fixed by post-save re-read: `create_neo_block` diffs the re-read block list against pre-save ids (`NeoBlockTree::newBlockIds()`); `create_block_type` resolves the new type by handle after the cache flush. Needs SIGHUP + live echo check. See [../architecture/neo-integration.md](../architecture/neo-integration.md). |
 | Item 3: `create_block_type` scaffolding | high | **done** | Fixed handle casing (`toCamelCase`→`toHandle`) and a stale-memo bug (new type invisible to follow-up calls until restart; clear `Memoize::$blockTypesByFieldId` after save). Persistence itself was correct. See [../architecture/neo-integration.md](../architecture/neo-integration.md). |
-| `create_block_type` stub hardcodes `columnItem` children loop | low | open | Loop ignores actual `childBlockTypes`. Scaffold for dev to edit; low priority. |
-| Item 4: `upload_asset` (GCS volume) | — | not started | Next QA item. |
-| Item 5: childBlocks / positioning edge cases | — | not started | `before:`/`after:`, `parentBlockId` nesting, childBlocks permission shape. |
+| `create_block_type` stub hardcodes `columnItem` children loop | low | done (#24) | Stub now honors `childBlockTypes`: columnItem children keep the columnItem include; other types dispatch via `columnItemPaths` (single type by name, mixed via `item.type.handle`). |
+| Item 4: `upload_asset` (GCS volume) | — | **done** | Verification-only, no defects. See [../architecture/asset-integration.md](../architecture/asset-integration.md). |
+| Item 5: childBlocks / positioning edge cases | — | not started | `before:`/`after:`, `parentBlockId` nesting, childBlocks permission shape. Next QA item. |
 
 ## Assets
 
-_(none yet — asset upload is item 4)_
+| Item | P | Status | Notes |
+| --- | --- | --- | --- |
+| `upload_asset` on GCS volume | — | **done** | Root upload, new nested subfolder creation (`qa/2026`), and filename-collision de-dup all verified live with no adapter-specific defects. See [../architecture/asset-integration.md](../architecture/asset-integration.md). |
 
 ## Cross-cutting / infra
 

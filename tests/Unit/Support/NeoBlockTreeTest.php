@@ -268,8 +268,8 @@ describe('NeoBlockTree::parentAllowsChildren()', function () {
             ->and(NeoBlockTree::parentAllowsChildren([]))->toBeFalse();
     });
 
-    it('is lenient for an unreadable (null) rule', function () {
-        expect(NeoBlockTree::parentAllowsChildren(null))->toBeTrue();
+    it('disallows for null — a Neo leaf type reports childBlocks as null', function () {
+        expect(NeoBlockTree::parentAllowsChildren(null))->toBeFalse();
     });
 });
 
@@ -279,14 +279,14 @@ describe('NeoBlockTree::childBlocksAllows()', function () {
             ->and(NeoBlockTree::childBlocksAllows(['columnItem'], 'callout'))->toBeFalse();
     });
 
-    it('allows any type for "*", true, and unreadable null', function () {
+    it('allows any type for "*" and true', function () {
         expect(NeoBlockTree::childBlocksAllows('*', 'anything'))->toBeTrue()
-            ->and(NeoBlockTree::childBlocksAllows(true, 'anything'))->toBeTrue()
-            ->and(NeoBlockTree::childBlocksAllows(null, 'anything'))->toBeTrue();
+            ->and(NeoBlockTree::childBlocksAllows(true, 'anything'))->toBeTrue();
     });
 
-    it('disallows any type for explicit false', function () {
-        expect(NeoBlockTree::childBlocksAllows(false, 'anything'))->toBeFalse();
+    it('disallows any type for explicit false and for a leaf null', function () {
+        expect(NeoBlockTree::childBlocksAllows(false, 'anything'))->toBeFalse()
+            ->and(NeoBlockTree::childBlocksAllows(null, 'anything'))->toBeFalse();
     });
 });
 
@@ -533,5 +533,62 @@ describe('NeoBlockTree::diff()', function () {
         NeoBlockTree::diff($before, 2, [['type' => 'callout', 'level' => 1, 'fields' => []]]);
 
         expect($before)->toBe($copy);
+    });
+});
+
+describe('NeoBlockTree::newBlockIds()', function () {
+    it('returns ids present after the save but not before, in document order', function () {
+        $before = treeFixture();
+        $after = [
+            ['id' => 1, 'type' => 'multiColumn', 'level' => 1],
+            ['id' => 12, 'type' => 'columnItem', 'level' => 2],
+            ['id' => 2, 'type' => 'columnItem', 'level' => 2],
+            ['id' => 3, 'type' => 'columnItem', 'level' => 2],
+            ['id' => 4, 'type' => 'callout', 'level' => 1],
+            ['id' => 10, 'type' => 'multiColumn', 'level' => 1],
+            ['id' => 11, 'type' => 'columnItem', 'level' => 2],
+        ];
+
+        expect(NeoBlockTree::newBlockIds($before, $after))->toBe([12, 10, 11]);
+    });
+
+    it('returns an empty list when nothing was added', function () {
+        $before = treeFixture();
+
+        expect(NeoBlockTree::newBlockIds($before, $before))->toBe([]);
+    });
+
+    it('returns every id when there were no pre-save blocks', function () {
+        $after = [
+            ['id' => 7, 'type' => 'callout', 'level' => 1],
+            ['id' => 8, 'type' => 'callout', 'level' => 1],
+        ];
+
+        expect(NeoBlockTree::newBlockIds([], $after))->toBe([7, 8]);
+    });
+
+    it('ignores null and missing ids on both sides', function () {
+        $before = [
+            ['id' => null, 'type' => 'callout', 'level' => 1],
+            ['type' => 'callout', 'level' => 1],
+            ['id' => 1, 'type' => 'multiColumn', 'level' => 1],
+        ];
+        $after = [
+            ['id' => 1, 'type' => 'multiColumn', 'level' => 1],
+            ['id' => null, 'type' => 'callout', 'level' => 1],
+            ['id' => 9, 'type' => 'callout', 'level' => 1],
+        ];
+
+        expect(NeoBlockTree::newBlockIds($before, $after))->toBe([9]);
+    });
+
+    it('casts numeric-string ids to integers', function () {
+        $before = [['id' => '1', 'type' => 'callout', 'level' => 1]];
+        $after = [
+            ['id' => '1', 'type' => 'callout', 'level' => 1],
+            ['id' => '42', 'type' => 'callout', 'level' => 1],
+        ];
+
+        expect(NeoBlockTree::newBlockIds($before, $after))->toBe([42]);
     });
 });

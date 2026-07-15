@@ -23,3 +23,9 @@ Defer building a Freeform `create_form` (and later `update_form`) tool. When bui
 ## Do not relitigate without
 
 A concrete use case requiring programmatic form creation, OR completion of the higher-priority QA items (Neo tree writes, scaffolding, assets). Revisit then and build the v1 scope in `create-form-tool.md`.
+
+**Update (2026-07-15):** `create_form` (#19) and `update_form` (#20) v1 are now
+implemented — see [implemented/2026-07-15-create-form-tool.md](../implemented/2026-07-15-create-form-tool.md)
+and [implemented/2026-07-15-update-form-tool.md](../implemented/2026-07-15-update-form-tool.md).
+This deferral now covers only what both tools explicitly left out: notification/
+element-connection config, multi-page forms, and conditional logic.

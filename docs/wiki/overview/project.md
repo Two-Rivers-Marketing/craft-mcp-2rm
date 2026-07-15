@@ -25,8 +25,8 @@ The entire Neo/Freeform/asset **write** surface was built duck-typed with **no l
 1. Freeform — **done** (4 bugs fixed; see [architecture/freeform-integration.md](../architecture/freeform-integration.md))
 2. Neo multi-level tree writes — **done** (write suite fixed; see [architecture/neo-integration.md](../architecture/neo-integration.md))
 3. Neo scaffolding (`create_block_type`) — **done** (handle casing + stale-memo fixes; see [architecture/neo-integration.md](../architecture/neo-integration.md))
-4. Asset upload (GCS volume) — next
-5. Neo childBlocks / positioning edge cases
+4. Asset upload (GCS volume) — **done** (verification-only pass, no defects; see [architecture/asset-integration.md](../architecture/asset-integration.md))
+5. Neo childBlocks / positioning edge cases — next
 
 Features and gaps surfaced along the way are tracked in [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
 

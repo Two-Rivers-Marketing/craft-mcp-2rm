@@ -98,7 +98,7 @@ final class Serializer {
      * Serialize an element query with preview.
      */
     private static function serializeElementQuery(ElementQuery $query, int $depth): array {
-        $count = $query->count();
+        $count = (int) $query->count();
         $elements = $query->limit(self::MAX_QUERY_PREVIEW)->all();
 
         return [

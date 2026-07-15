@@ -47,8 +47,8 @@ describe('BlockTypeStub default stub', function () {
 });
 
 describe('BlockTypeStub children loop variant', function () {
-    it('renders a block.children loop delegating to the columnItem include', function () {
-        $stub = BlockTypeStub::render('featureGrid', ['heading'], ['columnItem', 'callout']);
+    it('delegates columnItem children to the columnItem include', function () {
+        $stub = BlockTypeStub::render('featureGrid', ['heading'], ['columnItem']);
 
         expect($stub)->toContain('{% set items = block.children.all() %}')
             ->and($stub)->toContain('{% for item in items %}')
@@ -56,6 +56,31 @@ describe('BlockTypeStub children loop variant', function () {
             ->and($stub)->toContain('parentBlock: block,')
             ->and($stub)->toContain('columnItemPaths: columnItemPaths')
             ->and($stub)->toContain('{% endfor %}');
+    });
+
+    it('uses the columnItem include when columnItem is among mixed child types', function () {
+        $stub = BlockTypeStub::render('featureGrid', [], ['columnItem', 'callout']);
+
+        expect($stub)->toContain("{% include [globalPaths[0] ~ 'columnItem', globalPaths[1] ~ 'columnItem'] with {")
+            ->and($stub)->toContain('{# child block types: columnItem, callout #}');
+    });
+
+    it('includes a single non-columnItem child type by name via columnItemPaths', function () {
+        $stub = BlockTypeStub::render('textRow', [], ['text']);
+
+        expect($stub)->toContain("{% include [columnItemPaths[0] ~ 'text', columnItemPaths[1] ~ 'text'] with {")
+            ->and($stub)->toContain('child: item,')
+            ->and($stub)->toContain('{# child block types: text #}')
+            ->and($stub)->not->toContain("'columnItem'");
+    });
+
+    it('dispatches mixed non-columnItem child types on the child type handle', function () {
+        $stub = BlockTypeStub::render('mixedRow', [], ['text', 'callout']);
+
+        expect($stub)->toContain('{% include [columnItemPaths[0] ~ item.type.handle, columnItemPaths[1] ~ item.type.handle] with {')
+            ->and($stub)->toContain('child: item,')
+            ->and($stub)->toContain('{# child block types: text, callout #}')
+            ->and($stub)->not->toContain("'columnItem'");
     });
 
     it('lists the allowed child block types in a comment', function () {
