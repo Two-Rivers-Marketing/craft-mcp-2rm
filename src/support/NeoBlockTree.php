@@ -312,13 +312,15 @@ final class NeoBlockTree {
     /**
      * Whether a block type's childBlocks rule permits any children at all.
      *
-     * Neo stores childBlocks as `'*'`/true (any), a list of allowed handles,
-     * or false/empty (none). An unreadable rule (null) is treated leniently as
-     * "allowed" so unknowns never block a legitimate tree — only an explicit
-     * false or empty list is a hard "no children".
+     * Neo stores childBlocks as `'*'`/true (any) or a non-empty list of
+     * allowed handles when child blocks are enabled, and null/false/empty when
+     * they are not. A leaf block type reports childBlocks as **null** (verified
+     * against Neo 5.5), so null must be treated as a hard "no children" — the
+     * same as false or an empty list — otherwise illegal nesting under any leaf
+     * slips through.
      */
     public static function parentAllowsChildren(mixed $childBlocks): bool {
-        if ($childBlocks === false) {
+        if ($childBlocks === false || $childBlocks === null) {
             return false;
         }
 
@@ -332,15 +334,15 @@ final class NeoBlockTree {
     /**
      * Whether a block type's childBlocks rule permits a specific child type.
      *
-     * A list of handles is checked for membership; anything else that is not
-     * an explicit false (true, '*', or an unreadable null) permits the type.
+     * A list of handles is checked for membership; `true`/`'*'` permit any
+     * type; an explicit false or a leaf's null permit none.
      */
     public static function childBlocksAllows(mixed $childBlocks, string $childType): bool {
         if (is_array($childBlocks)) {
             return in_array($childType, $childBlocks, true);
         }
 
-        return $childBlocks !== false;
+        return $childBlocks !== false && $childBlocks !== null;
     }
 
     /**

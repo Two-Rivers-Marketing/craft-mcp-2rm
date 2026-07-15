@@ -268,8 +268,8 @@ describe('NeoBlockTree::parentAllowsChildren()', function () {
             ->and(NeoBlockTree::parentAllowsChildren([]))->toBeFalse();
     });
 
-    it('is lenient for an unreadable (null) rule', function () {
-        expect(NeoBlockTree::parentAllowsChildren(null))->toBeTrue();
+    it('disallows for null — a Neo leaf type reports childBlocks as null', function () {
+        expect(NeoBlockTree::parentAllowsChildren(null))->toBeFalse();
     });
 });
 
@@ -279,14 +279,14 @@ describe('NeoBlockTree::childBlocksAllows()', function () {
             ->and(NeoBlockTree::childBlocksAllows(['columnItem'], 'callout'))->toBeFalse();
     });
 
-    it('allows any type for "*", true, and unreadable null', function () {
+    it('allows any type for "*" and true', function () {
         expect(NeoBlockTree::childBlocksAllows('*', 'anything'))->toBeTrue()
-            ->and(NeoBlockTree::childBlocksAllows(true, 'anything'))->toBeTrue()
-            ->and(NeoBlockTree::childBlocksAllows(null, 'anything'))->toBeTrue();
+            ->and(NeoBlockTree::childBlocksAllows(true, 'anything'))->toBeTrue();
     });
 
-    it('disallows any type for explicit false', function () {
-        expect(NeoBlockTree::childBlocksAllows(false, 'anything'))->toBeFalse();
+    it('disallows any type for explicit false and for a leaf null', function () {
+        expect(NeoBlockTree::childBlocksAllows(false, 'anything'))->toBeFalse()
+            ->and(NeoBlockTree::childBlocksAllows(null, 'anything'))->toBeFalse();
     });
 });
 
