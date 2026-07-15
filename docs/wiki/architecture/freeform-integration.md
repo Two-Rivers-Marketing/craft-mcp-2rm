@@ -74,6 +74,20 @@ server (see live-verification handoff on issue #19).
 **GOTCHA — `count()` in Express edition check.** `FormPersistence` guards Express edition
 with `FormRecord::find()->count()`; mbd is `pro`, so untested there. Not our code.
 
+**GOTCHA — stale form cache in the long-running server (#26).** `FormsService` is a
+Craft component singleton holding a private `Memo $cache` (`Solspace\Freeform\Library\
+Cache\Memo`) meant to live one web request. In the persistent MCP server it survives
+across tool calls, and the create path never clears it. Two stale reads followed
+`create_form`: `assertHandleAvailable()`'s pre-save `getFormByHandle(newHandle)` caches
+a `null` under that handle (Memo caches nulls via `array_key_exists`), so a follow-up
+`get_form` by handle returned "not found"; and any earlier `list_forms` froze the
+`all-forms` list, so `list_forms` omitted the new form — both until a SIGHUP restart.
+Reproduced live across separate tool calls (the `all-forms` entry from one tinker call
+was still cached in the next). Fix: `FreeformScaffoldTools::flushFormCache()` clears the
+Memo after persist via reflection (`FormsService` exposes no public clear), fully guarded
+and echo-only. Mirrors Neo's `flushBlockTypeCaches()` — see
+[neo-integration.md](neo-integration.md#long-running-server-cache-hazards-audit-26).
+
 ## Known-still-broken
 
 - **`get_form` `notifications` / `connections` / `spamSettings` all return null.** The `FreeformSerializer::sectionAttributes()` keyword-dump approach doesn't hit Freeform 5's real structure (notifications/integrations live in dedicated services, not flat form attributes). This defeats the tool's stated "why didn't this submission create an entry" purpose. Not yet fixed — see [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).

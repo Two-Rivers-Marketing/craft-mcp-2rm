@@ -60,8 +60,30 @@ Because Neo creates fresh records from the serialized/project-config data, the p
 
 - ~~**`create_block_type` stub hardcodes a `columnItem` children loop** regardless of the actual `childBlockTypes`.~~ **Resolved (#24):** `BlockTypeStub` now honors the declared child types — `columnItem` children keep the columnItem-include loop; other child types dispatch to their module partial via `columnItemPaths` (a single declared type is included by name, a mix dispatches on `item.type.handle`). Still a dev-editable scaffold.
 
+## Long-running-server cache hazards (audit, #26)
+
+The MCP server (`bin/mcp-server`) is one long-running PHP process, so any
+process-static memo / service-singleton cache that a normal single-request web
+lifecycle would discard **persists across tool calls**. A mutation in call A can
+leave a read in call B stale. Full audit of every schema-/content-mutating tool
+and its post-mutation read path:
+
+| Tool | Read path after mutate | Persistent cache in play | Verdict |
+|---|---|---|---|
+| `create_block_type` (NeoScaffoldTools) | `get_block_type`, `describe_content_builder`, `create_neo_block` enumerate the field's block types | Neo `Memoize::$blockTypesByFieldId` (process-static) | **BUSTED** — `flushBlockTypeCaches()` clears the static + `refreshFields()` after save. Other `Memoize` statics (`$blockTypesById/ByHandle`, `$blockTypeGroups*`, `$parentFieldInstancesByLayoutElementUuid`) are keyed by the type's own id/handle/UUID, so a *fresh* create has no stale entry there — clearing `$blockTypesByFieldId` is sufficient. |
+| `create_form` (FreeformScaffoldTools) | `get_form` (by handle), `list_forms` | Freeform `FormsService` singleton's private `Memo $cache` (`by-handle.*`, `all-forms.*`) | **WAS BROKEN → FIXED (#26).** `assertHandleAvailable()`'s pre-save `getFormByHandle(newHandle)` caches a `null` under that handle (Memo caches nulls via `array_key_exists`), and any earlier `list_forms` freezes the all-forms list. Neither is cleared by the create path. Fix: `flushFormCache()` clears the Memo (reflection; no public clear) after persist. Reproduced live (see #26). |
+| `create_neo_block` / `update_neo_block` / `reorder_neo_blocks` / `delete_neo_block` (NeoContentTools) | `get_entry`, `describe_content_builder`, re-read of block ids | none stale — Neo `Memoize` caches block **types** (schema), not per-owner block **content**; block content is read from the elements table each call | **SAFE.** Content-only writes never touch the schema statics, and `create_neo_block` already re-reads a *fresh* `getElementById` for real ids (#23). Craft's element service returns a fresh element per `getElementById`, so no stale field-value memo survives. |
+| `create_entry` / `update_entry` (EntryTools) | `get_entry`, `list_entries` | none — no schema mutation; element saved and read via fresh element queries | **SAFE.** Echoes from the just-saved element; no memoized service holds stale content. |
+| `upload_asset` (AssetTools) | response serializes the saved Asset directly; `list_assets` / `list_asset_folders` re-query | Craft `Assets` service folder cache (only for created subfolders) | **SAFE.** Asset data comes from the freshly-saved element; folder listings run `findFolders` (DB) each call, not the memo. |
+| `delete_submission` (FreeformTools) | `list_submissions`, `get_submission` | `FormsService` Memo caches **forms**, not submissions; counts computed via fresh query | **SAFE.** Submission element deleted via Craft's element service; reads are fresh element queries. |
+
+Lesson carried from create_block_type: prefer a **surgical static/memo clear** over
+a broad `getCache()->flush()` — for the Neo memo, `flush()` + `refreshFields()` did
+**not** fix the stale read; only clearing the static did. The Freeform fix follows the
+same shape (clear the service's in-memory Memo, not Craft's cache).
+
 ## Cross-references
 
-- [freeform-integration.md](freeform-integration.md) — sibling integration gotchas (same duck-typed-against-absent-plugin origin)
+- [freeform-integration.md](freeform-integration.md) — sibling integration gotchas (same duck-typed-against-absent-plugin origin); create_form cache fix detailed there
 - [../plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md)
 - [../overview/project.md](../overview/project.md) — QA priority order

@@ -41,3 +41,10 @@ Write what the next person needs to know, not what you did.
 - Tests 449→454 (5 pure-logic newBlockIds tests), phpstan clean (`--memory-limit=1G`), pint clean on all 4 touched PHP files.
 - **LIVE RE-VERIFY after SIGHUP restart:** (1) `create_neo_block` with a nested tree on a scratch entry → `blockIds` must be real ints matching the DB rows, in preorder; try a mid-list `position` and a `parentBlockId` insert too. (2) `create_block_type` with a throwaway type → `blockType.id` must be a real int; then delete the scratch type + entry.
 - Wiki: neo-integration.md "Known limitations" null-id bullet moved to a resolved "Real ID echo" section; qa-feature-backlog row marked done (pending live re-verify).
+
+## #24 create_block_type stub children loop honors childBlockTypes (ea32ef2)
+- `BlockTypeStub::childrenLoop()` now branches: `columnItem` among declared children → existing columnItem-include loop (byte-identical to before); otherwise a module-dispatch loop via `columnItemPaths` — single declared type included by name (`columnItemPaths[0] ~ 'text'`), mixed types dispatch on `item.type.handle`. Context var is `child: item` (matches how `columnItem.twig` dispatches module partials in mbd). No-children case unchanged (no loop).
+- Convention source: mbd `templates/global/_includes/columnItem.twig` dispatches children to `columnItemPaths ~ childType` with `child:`; `multiColumn.twig` uses the globalPaths columnItem include. Stub mirrors both.
+- Tests 454→457 (3 new: single non-columnItem, mixed non-columnItem, mixed-with-columnItem). phpstan clean, pint clean on both touched files.
+- Wiki: neo-integration.md known-limitation struck through + resolution note; qa-feature-backlog row → done (#24).
+- Pure string generation — no live verify needed; stub output covered by unit tests.
