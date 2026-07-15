@@ -23,6 +23,7 @@ use craft\models\FieldLayoutTab;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
+use Throwable;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 use twoRivers\craft\Mcp\enums\ToolCategory;
@@ -123,7 +124,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
 
             return Response::success([
                 'blockType' => [
-                    'id' => $blockType->id ?? null,
+                    'id' => $blockType->id ?? $this->resolveSavedBlockTypeId($field, $plan['handle']),
                     ...$this->describeBlockType($field, $plan),
                 ],
                 'fields' => $this->describeAttachments($attachments),
@@ -816,6 +817,60 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         }
 
         Craft::$app->getFields()->refreshFields();
+    }
+
+    /**
+     * Resolve the real ID of a just-saved block type by handle.
+     *
+     * Neo persists block types via serialized/project-config data, so the
+     * pre-save BlockType model never receives an ID. flushBlockTypeCaches()
+     * has already cleared Neo's process-static memo, so re-reading the
+     * field's block types here hits the DB and returns the fresh record with
+     * its real ID. Echo-only: failures degrade to null rather than failing
+     * the (already persisted) create.
+     */
+    private function resolveSavedBlockTypeId(NeoField $field, string $handle): ?int {
+        try {
+            $types = $this->fieldBlockTypes($field);
+        } catch (Throwable) {
+            return null;
+        }
+
+        foreach ($types as $blockType) {
+            if (($blockType->handle ?? null) !== $handle) {
+                continue;
+            }
+
+            $id = $blockType->id ?? null;
+
+            return is_numeric($id) ? (int) $id : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Fetch the field's block types fresh from Neo's block types service
+     * (bypassing any list memoized on the field instance), falling back to
+     * the field's own getter if the service method is ever renamed.
+     *
+     * @return array<int, object>
+     * @throws ToolCallException
+     */
+    private function fieldBlockTypes(NeoField $field): array {
+        $service = $this->blockTypesService();
+
+        if (!method_exists($service, 'getByFieldId')) {
+            return $field->getBlockTypes();
+        }
+
+        $types = $service->getByFieldId((int) $field->id);
+
+        if (!is_array($types)) {
+            return [];
+        }
+
+        return array_values(array_filter($types, is_object(...)));
     }
 
     /**

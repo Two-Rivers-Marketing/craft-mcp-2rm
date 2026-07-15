@@ -431,6 +431,45 @@ final class NeoBlockTree {
     }
 
     /**
+     * Diff a post-save flattened block list against the pre-save list and
+     * return the IDs of the newly created blocks, in document (lft) order.
+     *
+     * Neo creates fresh block records from the serialized delta value, so the
+     * pre-save Block objects never receive IDs — re-reading the owner after
+     * the save and diffing against the pre-save ID set is the only way to
+     * report the real IDs, and it is robust to any insertion position.
+     *
+     * @param array<int, array<string, mixed>> $beforeFlat Summaries before the save (see NeoBlockPayload::summarizeBlock())
+     * @param array<int, array<string, mixed>> $afterFlat Summaries after the save, in document order
+     * @return array<int, int>
+     */
+    public static function newBlockIds(array $beforeFlat, array $afterFlat): array {
+        $known = [];
+
+        foreach ($beforeFlat as $block) {
+            if (!is_numeric($block['id'] ?? null)) {
+                continue;
+            }
+
+            $known[(int) $block['id']] = true;
+        }
+
+        $created = [];
+
+        foreach ($afterFlat as $block) {
+            $id = $block['id'] ?? null;
+
+            if (!is_numeric($id) || isset($known[(int) $id])) {
+                continue;
+            }
+
+            $created[] = (int) $id;
+        }
+
+        return $created;
+    }
+
+    /**
      * Recursively validate + normalize one node payload.
      *
      * @return array{blockType: string, fields: array<string, mixed>, children: array<int, array<string, mixed>>}

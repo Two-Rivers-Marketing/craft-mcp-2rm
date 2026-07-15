@@ -49,9 +49,15 @@ Two bugs, both fixed in `src/tools/NeoScaffoldTools.php`; the block-type persist
 
 2. **Stale block-type memo in the long-running server.** After a successful save, a freshly created block type was invisible to follow-up tool calls (`get_block_type`, `describe_content_builder`, `create_neo_block`) — `get_block_type` reported "not found" even though the DB row, `neo.blockTypes` config, and `neo.orders` were all correct. Cause: Neo caches block types per field in a **process-static** `benf\neo\helpers\Memoize::$blockTypesByFieldId`, designed to live one web request. In the long-running MCP server that static persists across tool calls, and Neo's `save()` doesn't clear it. Fixed by `flushBlockTypeCaches()` after save (clear the Memoize static + `refreshFields()`). Note: `getCache()->flush()` and `refreshFields()` alone do **not** fix it — only clearing the Memoize static does. This is a general hazard for any tool that mutates Neo schema in the persistent server.
 
+### Real ID echo (resolved 2026-07-15, #23)
+
+Because Neo creates fresh records from the serialized/project-config data, the plugin's pre-save objects never get ids — so `create_neo_block` used to echo `blockIds: [null, ...]` and `create_block_type` echoed `blockType.id: null`. Both now re-read post-save:
+
+- **`create_neo_block`** re-fetches the owner element after `persistBlocks()` (a *fresh* `getElementById` — the just-saved element memoizes its field value) and diffs the re-read block list against the pre-save summaries (`NeoBlockTree::newBlockIds()`). Ids not present pre-save are the new blocks, reported in document (lft) order — robust to any insertion position. Echo-only: failure degrades to `blockIds: []`, never fails the persisted create.
+- **`create_block_type`** resolves the new type by handle via Neo's blockTypes service after `flushBlockTypeCaches()` (the flush means the read hits the DB, not the stale Memoize static). Echo-only: failure degrades to `id: null`.
+
 ### Known limitations (backlog)
 
-- **`create_neo_block` returns `blockIds: [null, ...]`** and **`create_block_type` returns `blockType.id: null`.** Because Neo creates fresh records from the serialized/project-config data, the plugin's pre-save objects never get ids. The records are created correctly; only the id echo is missing. Fix would re-query post-save. Tracked in [../plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
 - **`create_block_type` stub hardcodes a `columnItem` children loop** regardless of the actual `childBlockTypes`. It's a scaffold for the dev to edit, so low priority.
 
 ## Cross-references
