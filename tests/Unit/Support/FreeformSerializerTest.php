@@ -303,37 +303,160 @@ describe('FreeformSerializer::toCsv()', function () {
     });
 });
 
-describe('FreeformSerializer::sectionAttributes()', function () {
-    it('filters public attributes by keyword substring', function () {
-        $obj = makeFreeformStub([
-            'notifyAdmin' => true,
-            'notifyEmail' => 'admin@example.com',
-            'unrelatedThing' => 'ignored',
-        ]);
+describe('FreeformSerializer::notification()', function () {
+    it('shapes a Freeform notification template record (Yii attributes via magic getter)', function () {
+        // NotificationTemplateRecord exposes id/handle/name/... as Yii
+        // ActiveRecord attributes, reachable through canGetProperty()/__get.
+        $record = new class () {
+            /** @var array<string, mixed> */
+            private array $attrs = [
+                'id' => 7,
+                'handle' => 'adminEmail',
+                'name' => 'Admin Email',
+                'formId' => 3,
+                'subject' => 'New submission',
+                'fromName' => 'Site',
+                'fromEmail' => 'site@example.com',
+                'replyToEmail' => 'reply@example.com',
+                'cc' => 'cc@example.com',
+                'bcc' => null,
+            ];
 
-        expect(FreeformSerializer::sectionAttributes($obj, ['notif']))->toBe([
-            'notifyAdmin' => true,
-            'notifyEmail' => 'admin@example.com',
-        ]);
-    });
+            public function canGetProperty(string $name): bool {
+                return array_key_exists($name, $this->attrs);
+            }
 
-    it('prefers toArray() over raw public properties', function () {
-        $obj = new class () {
-            public string $ignoredPublicProp = 'nope';
-
-            public function toArray(): array {
-                return ['spamProtection' => true];
+            public function __get(string $name): mixed {
+                return $this->attrs[$name] ?? null;
             }
         };
 
-        expect(FreeformSerializer::sectionAttributes($obj, ['spam']))->toBe(['spamProtection' => true]);
+        expect(FreeformSerializer::notification($record))->toBe([
+            'id' => 7,
+            'handle' => 'adminEmail',
+            'name' => 'Admin Email',
+            'formId' => 3,
+            'subject' => 'New submission',
+            'fromName' => 'Site',
+            'fromEmail' => 'site@example.com',
+            'replyToEmail' => 'reply@example.com',
+            'cc' => 'cc@example.com',
+            'bcc' => null,
+        ]);
     });
+});
 
-    it('returns null when nothing is introspectable', function () {
-        $obj = new class () {
-            private string $secret = 'hidden';
+describe('FreeformSerializer::integration()', function () {
+    it('shapes a Freeform integration (getters + type from getTypeDefinition + isEnabled)', function () {
+        $integration = new class () {
+            public function getId(): int {
+                return 1;
+            }
+
+            public function getHandle(): string {
+                return 'recaptcha';
+            }
+
+            public function getName(): string {
+                return 'reCAPTCHA';
+            }
+
+            public function isEnabled(): bool {
+                return true;
+            }
+
+            public function getTypeDefinition(): object {
+                return new #[AllowDynamicProperties] class () {
+                    public string $type = 'captchas';
+                };
+            }
         };
 
-        expect(FreeformSerializer::sectionAttributes($obj, ['secret']))->toBeNull();
+        expect(FreeformSerializer::integration($integration))->toBe([
+            'id' => 1,
+            'handle' => 'recaptcha',
+            'name' => 'reCAPTCHA',
+            'type' => 'captchas',
+            'enabled' => true,
+        ]);
+    });
+
+    it('degrades type to null when getTypeDefinition() is absent', function () {
+        $integration = new class () {
+            public function getId(): int {
+                return 2;
+            }
+
+            public function getHandle(): string {
+                return 'x';
+            }
+
+            public function getName(): string {
+                return 'X';
+            }
+        };
+
+        $result = FreeformSerializer::integration($integration);
+
+        expect($result['type'])->toBeNull()
+            ->and($result['enabled'])->toBeFalse();
+    });
+});
+
+describe('FreeformSerializer::form()', function () {
+    it('maps notification, connection, and spam collections through their item serializers', function () {
+        $form = makeFreeformStub(['id' => 3, 'handle' => 'contactForm', 'name' => 'Contact Form']);
+        $connection = new class () {
+            public function getId(): int {
+                return 9;
+            }
+
+            public function getHandle(): string {
+                return 'entryConnection';
+            }
+
+            public function getName(): string {
+                return 'Entry';
+            }
+
+            public function isEnabled(): bool {
+                return true;
+            }
+
+            public function getTypeDefinition(): object {
+                return new #[AllowDynamicProperties] class () {
+                    public string $type = 'elements';
+                };
+            }
+        };
+
+        $result = FreeformSerializer::form($form, [], [$connection], []);
+
+        expect($result['id'])->toBe(3)
+            ->and($result['handle'])->toBe('contactForm')
+            ->and($result['fields'])->toBe([])
+            ->and($result['notifications'])->toBe([])
+            ->and($result['spamSettings'])->toBe([])
+            ->and($result['connections'])->toBe([[
+                'id' => 9,
+                'handle' => 'entryConnection',
+                'name' => 'Entry',
+                'type' => 'elements',
+                'enabled' => true,
+            ]]);
+    });
+
+    it('defaults all three settings sections to empty lists when nothing is passed', function () {
+        $form = makeFreeformStub(['id' => 1, 'handle' => 'f', 'name' => 'F']);
+
+        expect(FreeformSerializer::form($form))->toBe([
+            'id' => 1,
+            'handle' => 'f',
+            'name' => 'F',
+            'fields' => [],
+            'notifications' => [],
+            'connections' => [],
+            'spamSettings' => [],
+        ]);
     });
 });

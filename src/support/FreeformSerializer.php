@@ -45,18 +45,82 @@ final class FreeformSerializer {
      * Serialize a full form: identity, field layout, notifications, element
      * connections, and spam-protection settings.
      *
+     * The three settings sections are not readable from the form object alone
+     * in Freeform 5 — notifications live in NotificationsService and
+     * connections/spam are form "integrations" (see IntegrationsService).
+     * The caller (FreeformTools::getForm) resolves those against the live
+     * services and passes the raw objects in; this method only shapes them,
+     * so it stays a pure duck-typed reader with no Freeform dependency.
+     *
+     * @param array<int, object> $notifications form-specific notification template records
+     * @param array<int, object> $connections   "elements" integrations that map a submission to a Craft element
+     * @param array<int, object> $spam          captcha / spam-blocking integrations
      * @return array<string, mixed>
      */
-    public static function form(object $form): array {
+    public static function form(
+        object $form,
+        array $notifications = [],
+        array $connections = [],
+        array $spam = [],
+    ): array {
         return [
             'id' => self::readProp($form, 'id'),
             'handle' => self::readProp($form, 'handle'),
             'name' => self::readProp($form, 'name'),
             'fields' => self::fieldLayout($form),
-            'notifications' => self::sectionAttributes($form, ['notif']),
-            'connections' => self::sectionAttributes($form, ['connect', 'integration', 'element']),
-            'spamSettings' => self::sectionAttributes($form, ['spam', 'honeypot', 'captcha', 'duplicate', 'blocklist']),
+            'notifications' => array_map(self::notification(...), array_values($notifications)),
+            'connections' => array_map(self::integration(...), array_values($connections)),
+            'spamSettings' => array_map(self::integration(...), array_values($spam)),
         ];
+    }
+
+    /**
+     * Serialize a Freeform notification template record (the email
+     * notification config attached to a form).
+     *
+     * @return array<string, mixed>
+     */
+    public static function notification(object $record): array {
+        return [
+            'id' => self::readProp($record, 'id'),
+            'handle' => self::readProp($record, 'handle'),
+            'name' => self::readProp($record, 'name'),
+            'formId' => self::readProp($record, 'formId'),
+            'subject' => self::readProp($record, 'subject'),
+            'fromName' => self::readProp($record, 'fromName'),
+            'fromEmail' => self::readProp($record, 'fromEmail'),
+            'replyToEmail' => self::readProp($record, 'replyToEmail'),
+            'cc' => self::scalarize(self::readProp($record, 'cc')),
+            'bcc' => self::scalarize(self::readProp($record, 'bcc')),
+        ];
+    }
+
+    /**
+     * Serialize a Freeform form integration (element connection, captcha, or
+     * spam-blocking). `type` is the integration category (e.g. 'elements',
+     * 'captchas', 'spam-blocking'); `enabled` says whether it runs on submit.
+     *
+     * @return array<string, mixed>
+     */
+    public static function integration(object $integration): array {
+        return [
+            'id' => self::readProp($integration, 'id'),
+            'handle' => self::readProp($integration, 'handle'),
+            'name' => self::readProp($integration, 'name'),
+            'type' => self::integrationType($integration),
+            'enabled' => (bool) self::readProp($integration, 'enabled'),
+        ];
+    }
+
+    private static function integrationType(object $integration): ?string {
+        $definition = self::readMethod($integration, 'getTypeDefinition');
+        if (!is_object($definition)) {
+            return null;
+        }
+
+        $type = self::readProp($definition, 'type');
+
+        return is_string($type) ? $type : null;
     }
 
     /**
@@ -281,64 +345,6 @@ final class FreeformSerializer {
         $encoded = json_encode($value);
 
         return $encoded === false ? '' : $encoded;
-    }
-
-    /**
-     * Read a filtered slice of an object's public attributes, matched by
-     * keyword substring against the attribute name. Used for
-     * notifications/connections/spam-settings sections whose shape is not
-     * part of Freeform's stable public API — returns null when nothing about
-     * the object is introspectable.
-     *
-     * @param array<int, string> $keywords
-     * @return array<string, mixed>|null
-     */
-    public static function sectionAttributes(object $obj, array $keywords): ?array {
-        $all = self::attributesOf($obj);
-        if ($all === null) {
-            return null;
-        }
-
-        $filtered = [];
-        foreach ($all as $key => $value) {
-            if (!self::matchesAnyKeyword($key, $keywords)) {
-                continue;
-            }
-
-            $filtered[$key] = self::scalarize($value);
-        }
-
-        return $filtered;
-    }
-
-    private static function matchesAnyKeyword(string $key, array $keywords): bool {
-        $lower = strtolower($key);
-        foreach ($keywords as $keyword) {
-            if (str_contains($lower, strtolower($keyword))) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private static function attributesOf(object $obj): ?array {
-        $viaToArray = self::readMethod($obj, 'toArray');
-        if (is_array($viaToArray)) {
-            return $viaToArray;
-        }
-
-        $viaGetAttributes = self::readMethod($obj, 'getAttributes');
-        if (is_array($viaGetAttributes)) {
-            return $viaGetAttributes;
-        }
-
-        $vars = get_object_vars($obj);
-
-        return $vars === [] ? null : $vars;
     }
 
     /**

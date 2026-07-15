@@ -203,8 +203,32 @@ Completes the Freeform write CRUD surface (`create_form` / `update_form` / `dele
 
 ## Known-still-broken / in-flight
 
-- **`get_form` `notifications` / `connections` / `spamSettings` return null — FIXED but UNMERGED.** The fix (real service reads via `NotificationsService`/`IntegrationsService`, replacing the `sectionAttributes()` keyword dump) was built and live-verified on 2026-07-15 (mbd `contactForm`), but it is stranded in **draft PR #27** off branch `worktree-issue-18-freeform-getform` and **is NOT on `main`**. GitHub issue #18 is marked closed-completed, but the code hasn't landed — merge PR #27 (rebased) to actually ship it. See [../log/2026-07-27-live-verify-nightshift-and-cache-taxonomy.md](../log/2026-07-27-live-verify-nightshift-and-cache-taxonomy.md).
+- ~~**`get_form` `notifications` / `connections` / `spamSettings` return null — FIXED but UNMERGED.**~~ **LANDED on `main` 2026-08-11** (`429ae4d`, cherry-picked; draft PR #27 closed as superseded). PR #27 was never merged: 7 of its 8 commits were already on `main` — a branch-timing artifact that inflated the diff to 21 files / +1004 — so only the one real commit was cherry-picked. See the section below and [../log/2026-08-11-land-get-form-fix-and-list-entries-verbosity.md](../log/2026-08-11-land-get-form-fix-and-list-entries-verbosity.md).
 - **Live-verify of #30 (complete) + #31 (`delete_form`) still pending.** Both merged to `main` (2026-07-23) but exercised only via boot-free unit tests — the `craft-mcp` MCP was disconnected during their nightshift run. Verify after SIGHUP per `docs/live-verify-handoff-2026-07-22.md`.
+
+## get_form settings sections (fixed 2026-07-15, landed 2026-08-11)
+
+`get_form`'s `notifications` / `connections` / `spamSettings` used to return `null` — the old
+`FreeformSerializer::sectionAttributes()` keyword-dump over flat form attributes didn't match
+Freeform 5's structure (these live in dedicated services, not on the form). Now resolved against the
+real API documented above:
+
+- `FreeformTools::getForm()` fetches the three collections (notifications filtered by formId;
+  `elements` integrations for connections; `captchas` + `spam-blocking` for spam) and passes the raw
+  objects to `FreeformSerializer::form()`.
+- `FreeformSerializer::form()` shapes them via `notification()` / `integration()` item serializers,
+  staying a pure duck-typed reader (no Freeform dependency, unit-testable with stubs). Each service
+  read degrades to `[]` on failure rather than throwing.
+- Each section is now a **list** (empty = nothing configured), never `null` from a failed lookup. An
+  empty `connections` list means the form creates no Craft element — the answer to "why didn't this
+  submission create an entry".
+- The dead `sectionAttributes()` / `matchesAnyKeyword()` / `attributesOf()` helpers were removed.
+
+Live-verified against mbd `contactForm` (id 3) on 2026-07-15: `connections: []`,
+`spamSettings: [{handle: recaptcha, type: captchas, enabled: true}]`, `notifications: []`.
+
+**Not yet re-verified on KCMA** — it landed on `main` three weeks after that verification, and
+KCMA's Freeform surface has not been exercised since.
 
 ## Cross-references
 

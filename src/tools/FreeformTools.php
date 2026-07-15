@@ -127,7 +127,7 @@ class FreeformTools implements ConditionalToolProvider {
      */
     #[McpTool(
         name: 'get_form',
-        description: 'Get a single Freeform form by handle or id: its field layout (handle/type/label/required per field), notification settings, element connections (how submissions map to Craft entry creation), and spam-protection settings. Powers debugging "why didn\'t this submission create an entry". notifications/connections/spamSettings are best-effort — Freeform does not expose a stable public API for them, so unavailable sections come back as null.',
+        description: 'Get a single Freeform form by handle or id: its field layout (handle/type/label/required per field), notification settings (form-specific email notification templates), element connections (Freeform "elements" integrations that map a submission to a created Craft entry/element), and spam-protection settings (captcha + spam-blocking integrations). Powers debugging "why didn\'t this submission create an entry" — an empty connections list means the form creates no element. Each section is a list; empty means nothing of that kind is configured on the form.',
     )]
     #[McpToolMeta(category: ToolCategory::CONTENT)]
     public function getForm(?string $handle = null, ?int $id = null, ?RequestContext $context = null): array {
@@ -136,8 +136,72 @@ class FreeformTools implements ConditionalToolProvider {
 
             $form = $this->resolveForm($handle, $id);
 
-            return Response::found('form', FreeformSerializer::form($form));
+            return Response::found('form', FreeformSerializer::form(
+                $form,
+                $this->formNotifications($form),
+                $this->integrationsForForm($form, ['elements']),
+                $this->integrationsForForm($form, ['captchas', 'spam-blocking']),
+            ));
         });
+    }
+
+    /**
+     * Freeform notification templates bound to this form (formId matches).
+     * getAllFormNotifications() returns every form-scoped template across all
+     * forms, so filter to this one. Degrades to [] rather than throwing.
+     *
+     * @return array<int, object>
+     */
+    private function formNotifications(object $form): array {
+        $formId = FreeformSerializer::readProp($form, 'id');
+        if (!is_numeric($formId)) {
+            return [];
+        }
+
+        try {
+            $all = Freeform::getInstance()->notifications->getAllFormNotifications();
+        } catch (Throwable) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $all,
+            static fn (object $n): bool => (int) FreeformSerializer::readProp($n, 'formId') === (int) $formId,
+        ));
+    }
+
+    /**
+     * Form integrations of the given type categories (e.g. 'elements',
+     * 'captchas', 'spam-blocking'). Each type is read independently and
+     * degrades to [] on failure, keeping partial results.
+     *
+     * @param array<int, string> $types
+     * @return array<int, object>
+     */
+    private function integrationsForForm(object $form, array $types): array {
+        $service = Freeform::getInstance()->integrations;
+
+        return array_merge([], ...array_map(
+            fn (string $type): array => $this->integrationsOfType($service, $form, $type),
+            $types,
+        ));
+    }
+
+    /**
+     * @return array<int, object>
+     */
+    private function integrationsOfType(object $service, object $form, string $type): array {
+        if (!method_exists($service, 'getForForm')) {
+            return [];
+        }
+
+        try {
+            $result = $service->getForForm($form, $type);
+        } catch (Throwable) {
+            return [];
+        }
+
+        return is_iterable($result) ? array_values(array_filter([...$result], 'is_object')) : [];
     }
 
     /**
