@@ -21,12 +21,14 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 | `create_neo_block` returns `blockIds: [null,...]` / `create_block_type` returns `blockType.id: null` | low | open | Neo creates fresh records from serialized/PC data, so pre-save objects have no id. Re-query post-save to report real ids. |
 | Item 3: `create_block_type` scaffolding | high | **done** | Fixed handle casing (`toCamelCase`→`toHandle`) and a stale-memo bug (new type invisible to follow-up calls until restart; clear `Memoize::$blockTypesByFieldId` after save). Persistence itself was correct. See [../architecture/neo-integration.md](../architecture/neo-integration.md). |
 | `create_block_type` stub hardcodes `columnItem` children loop | low | open | Loop ignores actual `childBlockTypes`. Scaffold for dev to edit; low priority. |
-| Item 4: `upload_asset` (GCS volume) | — | not started | Next QA item. |
-| Item 5: childBlocks / positioning edge cases | — | not started | `before:`/`after:`, `parentBlockId` nesting, childBlocks permission shape. |
+| Item 4: `upload_asset` (GCS volume) | — | **done** | Verification-only, no defects. See [../architecture/asset-integration.md](../architecture/asset-integration.md). |
+| Item 5: childBlocks / positioning edge cases | — | not started | `before:`/`after:`, `parentBlockId` nesting, childBlocks permission shape. Next QA item. |
 
 ## Assets
 
-_(none yet — asset upload is item 4)_
+| Item | P | Status | Notes |
+| --- | --- | --- | --- |
+| `upload_asset` on GCS volume | — | **done** | Root upload, new nested subfolder creation (`qa/2026`), and filename-collision de-dup all verified live with no adapter-specific defects. See [../architecture/asset-integration.md](../architecture/asset-integration.md). |
 
 ## Cross-cutting / infra
 
