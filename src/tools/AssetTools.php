@@ -72,7 +72,7 @@ class AssetTools {
 
             return [
                 'count' => count($results),
-                'total' => $query->count(),
+                'total' => (int) $query->count(),
                 'limit' => $limit,
                 'offset' => $offset,
                 'assets' => $results,
