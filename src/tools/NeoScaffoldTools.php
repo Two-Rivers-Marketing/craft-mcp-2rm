@@ -178,7 +178,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     private function resolveBlockTypeHandle(?string $handle, string $name): string {
         $resolved = $handle !== null && trim($handle) !== ''
             ? trim($handle)
-            : StringHelper::toCamelCase($name);
+            : StringHelper::toHandle($name);
 
         $this->assertValidHandle($resolved, 'Block type');
 
@@ -420,7 +420,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      */
     private function planNewField(array $spec, array $summaries): array {
         $class = $this->resolveFieldTypeClass($spec['type']);
-        $specHandle = $spec['handle'] ?? StringHelper::toCamelCase($spec['name']);
+        $specHandle = $spec['handle'] ?? StringHelper::toHandle($spec['name']);
         $this->assertValidHandle($specHandle, "newFields '{$spec['name']}'");
 
         $match = FieldMatcher::matchExisting($specHandle, $spec['name'], $class, $summaries);
@@ -787,13 +787,35 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      * @throws ToolCallException
      */
     private function saveBlockType(BlockType $blockType): void {
-        if ($this->invokeBlockTypeSave($this->blockTypesService(), $blockType)) {
-            return;
+        if (!$this->invokeBlockTypeSave($this->blockTypesService(), $blockType)) {
+            throw new ToolCallException(
+                'Failed to save block type: ' . json_encode($blockType->getErrors()),
+            );
         }
 
-        throw new ToolCallException(
-            'Failed to save block type: ' . json_encode($blockType->getErrors()),
-        );
+        $this->flushBlockTypeCaches();
+    }
+
+    /**
+     * Invalidate Neo's process-static block-type memo after a save.
+     *
+     * Neo caches block types per field in benf\neo\helpers\Memoize, a static
+     * meant to live for a single web request. In the long-running MCP server
+     * process that static persists across tool calls, so a freshly created
+     * block type would stay invisible to follow-up calls (create_neo_block,
+     * describe_content_builder, etc.) until a server restart. Clearing it +
+     * refreshing the fields cache makes the new block type visible immediately.
+     *
+     * ponytail: reaches into a Neo internal helper, guarded by class_exists —
+     * if Neo renames it, the cache simply isn't busted (no fatal); revisit the
+     * memo class name if a Neo upgrade brings back the stale-read symptom.
+     */
+    private function flushBlockTypeCaches(): void {
+        if (class_exists(\benf\neo\helpers\Memoize::class)) {
+            \benf\neo\helpers\Memoize::$blockTypesByFieldId = [];
+        }
+
+        Craft::$app->getFields()->refreshFields();
     }
 
     /**
