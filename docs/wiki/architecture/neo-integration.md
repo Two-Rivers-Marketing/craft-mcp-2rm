@@ -41,9 +41,18 @@ Verified live end-to-end on a scratch entry: create (3-level multiColumn→colum
 
 Neo's `normalizeValue` also accepts a plain ordered array of the same per-block dicts (auto-keyed `newN`), but that recreates *everything* as new — unusable for update/reorder/delete which must preserve existing ids. The delta format is the correct general form.
 
-## Known limitation
+## create_block_type (scaffolding, live-QA item 3)
 
-- **`create_neo_block` returns `blockIds: [null, ...]`.** Because Neo creates fresh blocks from the serialized data, the plugin's pre-save `Block` objects never get ids assigned. Blocks are created correctly; only the id echo is missing. Fix would re-query the owner's blocks post-save and diff against the pre-save id set. Tracked in [../plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
+Two bugs, both fixed in `src/tools/NeoScaffoldTools.php`; the block-type persistence itself was correct.
+
+1. **Handle casing.** Handles were derived with `StringHelper::toCamelCase()`, which mangles acronyms — `"FAQ Section"` → `fAQSection`, `"QA Choice"` → `qAChoice`. Switched to `StringHelper::toHandle()` (Craft's canonical generator, what the CP uses) → `faqSection`, `qaChoice`. Normal multi-word names were unaffected; only acronym/all-caps names bit. Applies to both the block-type handle and new-field handles.
+
+2. **Stale block-type memo in the long-running server.** After a successful save, a freshly created block type was invisible to follow-up tool calls (`get_block_type`, `describe_content_builder`, `create_neo_block`) — `get_block_type` reported "not found" even though the DB row, `neo.blockTypes` config, and `neo.orders` were all correct. Cause: Neo caches block types per field in a **process-static** `benf\neo\helpers\Memoize::$blockTypesByFieldId`, designed to live one web request. In the long-running MCP server that static persists across tool calls, and Neo's `save()` doesn't clear it. Fixed by `flushBlockTypeCaches()` after save (clear the Memoize static + `refreshFields()`). Note: `getCache()->flush()` and `refreshFields()` alone do **not** fix it — only clearing the Memoize static does. This is a general hazard for any tool that mutates Neo schema in the persistent server.
+
+### Known limitations (backlog)
+
+- **`create_neo_block` returns `blockIds: [null, ...]`** and **`create_block_type` returns `blockType.id: null`.** Because Neo creates fresh records from the serialized/project-config data, the plugin's pre-save objects never get ids. The records are created correctly; only the id echo is missing. Fix would re-query post-save. Tracked in [../plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
+- **`create_block_type` stub hardcodes a `columnItem` children loop** regardless of the actual `childBlockTypes`. It's a scaffold for the dev to edit, so low priority.
 
 ## Cross-references
 

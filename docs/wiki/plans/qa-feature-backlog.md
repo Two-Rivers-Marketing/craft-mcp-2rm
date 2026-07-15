@@ -18,8 +18,10 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 | Item | P | Status | Notes |
 | --- | --- | --- | --- |
 | Neo write suite crashed on save (all 4 tools) | high | **done** | `persistBlocks` passed Block objects; Neo wants serialized delta format. Fixed via `toNeoValue()`. Verified live (create/update/reorder/delete + nested-set integrity). See [../architecture/neo-integration.md](../architecture/neo-integration.md). |
-| `create_neo_block` returns `blockIds: [null,...]` | low | open | Neo creates fresh blocks from serialized data, so pre-save objects have no id. Re-query owner blocks post-save and diff vs pre-save id set to report real ids. |
-| Item 3: `create_block_type` scaffolding | — | not started | Next QA item (block-type service save, field-layout persistence, template stub). |
+| `create_neo_block` returns `blockIds: [null,...]` / `create_block_type` returns `blockType.id: null` | low | open | Neo creates fresh records from serialized/PC data, so pre-save objects have no id. Re-query post-save to report real ids. |
+| Item 3: `create_block_type` scaffolding | high | **done** | Fixed handle casing (`toCamelCase`→`toHandle`) and a stale-memo bug (new type invisible to follow-up calls until restart; clear `Memoize::$blockTypesByFieldId` after save). Persistence itself was correct. See [../architecture/neo-integration.md](../architecture/neo-integration.md). |
+| `create_block_type` stub hardcodes `columnItem` children loop | low | open | Loop ignores actual `childBlockTypes`. Scaffold for dev to edit; low priority. |
+| Item 4: `upload_asset` (GCS volume) | — | not started | Next QA item. |
 | Item 5: childBlocks / positioning edge cases | — | not started | `before:`/`after:`, `parentBlockId` nesting, childBlocks permission shape. |
 
 ## Assets
@@ -32,6 +34,8 @@ _(none yet — asset upload is item 4)_
 | --- | --- | --- | --- |
 | Orphan `stimmt` MCP server processes | low | open | Two zombie `vendor/stimmt/craft-mcp/bin/mcp-server` procs (PIDs 2220/17996 as of 2026-07-14) from the pre-rename path; safe to kill. Leftover from other MCP clients. |
 | Reload ergonomics | low | open | Code changes need a manual SIGHUP restart of the long-running server; `reload_mcp` only detects new plugins. A smoother dev-reload would speed QA. |
+| Long-running server holds process-static caches | med | partial | Neo's `Memoize` static (and potentially others) persist across tool calls in the MCP server, unlike per-request web. `create_block_type` now busts it; audit other schema-mutating tools for the same class of staleness. |
+| mbd snapback jobs failing (not our plugin) | — | note | `modules\snapback\jobs\SnapbackJob` fails on `fopen(...system.png): No such file` — mbd's own snapback module can't write screenshots. Pre-existing; unrelated to craft-mcp. Flagged for mbd, not this repo. |
 
 ## Cross-references
 
