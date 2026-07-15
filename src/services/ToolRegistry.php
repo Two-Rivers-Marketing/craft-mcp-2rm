@@ -16,6 +16,7 @@ use twoRivers\craft\Mcp\tools\CraftTools;
 use twoRivers\craft\Mcp\tools\DatabaseTools;
 use twoRivers\craft\Mcp\tools\DebugTools;
 use twoRivers\craft\Mcp\tools\EntryTools;
+use twoRivers\craft\Mcp\tools\FreeformScaffoldTools;
 use twoRivers\craft\Mcp\tools\FreeformTools;
 use twoRivers\craft\Mcp\tools\GlobalSetTools;
 use twoRivers\craft\Mcp\tools\GraphqlTools;
@@ -335,6 +336,11 @@ final class ToolRegistry {
         // Add Freeform tools if Freeform is installed
         if (FreeformTools::isAvailable()) {
             $tools[] = FreeformTools::class;
+        }
+
+        // Add Freeform form-scaffolding tools (create_form) if Freeform is installed
+        if (FreeformScaffoldTools::isAvailable()) {
+            $tools[] = FreeformScaffoldTools::class;
         }
 
         // Use addCoreTools which bypasses source validation

@@ -1,6 +1,6 @@
 # Plan: `create_form` — Freeform form creation tool
 
-**Status:** proposed (deferred — see [decisions/deferred/2026-07-14-freeform-write-tools.md](../decisions/deferred/2026-07-14-freeform-write-tools.md))
+**Status:** v1 implemented 2026-07-15 (issue #19) — pending live verification. See [decisions/implemented/2026-07-15-create-form-tool.md](../decisions/implemented/2026-07-15-create-form-tool.md).
 **Raised:** 2026-07-14, during Freeform live-QA
 **Motivation:** The Freeform surface is read + submission-management only. There is no way to create (or edit) a form via MCP, unlike Neo which has `create_block_type` / `create_neo_block`.
 
@@ -27,11 +27,14 @@ Ship a **minimal single-page form creator** first; expand only as real use cases
 - Notification + element-connection config (depends on first nailing how to *read* them — currently broken; see backlog).
 - Multi-page / conditional logic.
 
-## Open questions (resolve at build time, against a live Freeform)
+## Open questions — RESOLVED (2026-07-15, against live Freeform 5.15.16)
 
-- What is the actual programmatic creation entry point in Freeform 5.15 — a `FormsService::create`-style call, a `Form` model save, or DB-layer builder? (Probe live, as with the read tools.)
-- Do new fields need to exist in a field library first, or are they created inline in the layout?
-- How is the layout tree (pages/rows) represented when saving?
+Full detail in [architecture/freeform-integration.md](../architecture/freeform-integration.md) ("Verified 5.15 form-creation API").
+
+- **Creation entry point:** neither a `FormsService::create` nor a `Form` model save. Forms persist by triggering the CP's `FormsController::EVENT_CREATE_FORM` then `EVENT_UPSERT_FORM` events with a `PersistFormEvent($payload)`, where `$payload = (object)['form'=>…, 'layout'=>…]`. Reverse-engineered from `FormGenerationService::generate()`.
+- **Fields are created inline** in the layout — no field-library prerequisite. A field is a `typeClass` + a `properties` object; `LayoutPersistence` validates each against the type's editable properties (from `PropertyProvider`), so the payload must carry every property (seed defaults, override label/handle/required).
+- **Layout tree:** a flat set of `pages`/`layouts`/`rows`/`fields` arrays joined by UIDs (field→`rowUid`, row/page→`layoutUid`).
+- **Extra gotcha found:** creation dereferences the current user identity with no null guard; the tool sets an admin identity for the save (the MCP server has no logged-in user).
 
 ## Cross-references
 
