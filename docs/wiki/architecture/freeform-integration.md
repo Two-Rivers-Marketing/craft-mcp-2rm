@@ -180,6 +180,11 @@ since `update_form` v1 never edits page-level settings.
 
 - **`get_form` `notifications` / `connections` / `spamSettings` all return null.** The `FreeformSerializer::sectionAttributes()` keyword-dump approach doesn't hit Freeform 5's real structure (notifications/integrations live in dedicated services, not flat form attributes). This defeats the tool's stated "why didn't this submission create an entry" purpose. Not yet fixed — see [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
 
+- **Add-field can leave the field orphaned → not rendered in CP (#28).** Surfaced from live CP use *after* the write tools merged: adding a `dropdown` via `update_form` created the field record and a layout row, but the tool reported success while the CP rendered nothing. Two distinct failure modes, both must be checked when fixing:
+  1. `craft_freeform_forms_fields.rowId` left **null** — the field points at no row.
+  2. the new `craft_freeform_forms_rows` row was created with a **blank `uid`** — and `LayoutsService::attachRows()` assembles the rendered layout by row uid, so a blank-uid row is silently dropped **even after `rowId` is corrected**. `rowId`-not-null alone is a false PASS.
+  The behavioral gate is whether the field appears in `Freeform::getInstance()->forms->getFormById($id)->getLayout()->getFields()` (what the CP renders), not whether the DB row merely exists. Scope not yet pinned: observed only on the `update_form` add-a-dropdown path; the create-with-dropdown path and update-add-a-non-dropdown path are unexercised (the "options-group" framing in the #28 title may be wrong — mode 2 is about row creation for *any* added field). Live-verify disambiguator + full suite in `docs/live-verify-handoff-2026-07-15.md`. See [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
+
 ## Cross-references
 
 - [plans/create-form-tool.md](../plans/create-form-tool.md) — the missing write side (form creation)
