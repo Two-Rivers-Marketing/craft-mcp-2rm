@@ -18,6 +18,7 @@ use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\FreeformFormPlan;
+use twoRivers\craft\Mcp\support\FreeformLayoutCacheReset;
 use twoRivers\craft\Mcp\support\Response;
 use twoRivers\craft\Mcp\support\SafeExecution;
 use yii\base\Event;
@@ -535,6 +536,12 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
     private function triggerPersist(stdClass $payload, ?int $formId, string $primaryEventConst): object {
         $event = $this->makePersistEvent($payload, $formId);
         $controller = self::FORMS_CONTROLLER_CLASS;
+
+        // Bust LayoutPersistence's stale per-request row-id memo before saving,
+        // or a newly-added field's row would resolve to a null rowId in the
+        // long-running server and be orphaned (issue #28). See the helper's
+        // docblock. Shared by create_form and update_form via this method.
+        FreeformLayoutCacheReset::reset($controller, (string) constant($controller . '::EVENT_UPSERT_FORM'));
 
         Event::trigger($controller, (string) constant($controller . '::' . $primaryEventConst), $event);
         Event::trigger($controller, (string) constant($controller . '::EVENT_UPSERT_FORM'), $event);
