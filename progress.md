@@ -108,3 +108,84 @@ Files: `src/support/FreeformStaleFormCache.php` (new),
 `src/tools/FreeformTools.php` (import + submissionCount signal + 4 guard sites),
 `tests/Unit/Support/FreeformStaleFormCacheTest.php` (new, boot-free, 10 cases).
 Tests 487 passed, phpstan clean.
+
+## #30 — get_form serves stale field layout after update_form — FIXED
+
+Confirmed FieldProvider's memo sub-family BEFORE writing code (per instructions):
+opened `vendor/solspace/craft-freeform/packages/plugin/src/Bundles/Fields/
+FieldProvider.php` on mbd's live install. `FieldProvider::getRows(?int $formId)`
+memoizes a form's raw field ROWS (a straight `FormFieldRecord` DB query) in a
+private `Memo $cache` under prefix `'rows'`, keyed by the form's real, STABLE
+database id — not by Form-object identity (contrast `getFields(Form $form)`'s
+own `'by-form'` cache, keyed by `spl_object_id($form)`, which self-invalidates
+whenever a fresh Form entity loads). `Form::getLayout()->getFields()` resolves
+through `LayoutsService::getFields($form)` -> `FieldProvider::getFields($form)`
+-> `getRows($formId)`, so once a form's rows are memoized, EVERY later
+get_form for that formId returns the same field list forever, regardless of
+how fresh the Form object is — this is `get_form`'s stale-read root cause.
+
+This is sub-family 1 from #29's writeup (**resettable class-property memo**),
+NOT #29's unresettable method-local-static family. Confirmed via read-only
+`tinker` on the live install: `FieldProvider::class` is registered as a
+genuine Yii container **singleton** (`Freeform::initContainerItems()`, "Providers
+with caches" block) — unlike #28's `LayoutPersistence` (which is event-bound
+only; `$container->get()` returns a fresh, unbound instance there), here
+`\Craft::$container->get(FieldProvider::class)` called twice returned the
+IDENTICAL object (`singletonSame: true`), with a private `cache` property
+holding a `Solspace\Freeform\Library\Cache\Memo` (public `clear()` method) —
+same shape as `FormsService::$cache` (#26's `flushFormCache()`). So the #28
+reflection-reset template applies directly, and no event-registry lookup is
+needed — just `$container->get()` + one reflection-get + `Memo::clear()`.
+
+### Converged on a shared helper (as the issue asked)
+
+Extended/refactored #26's `flushFormCache()` (private method, only in
+`FreeformScaffoldTools`, only cleared `FormsService`) into a new support
+class: `src/support/FreeformFormCacheReset.php`. `FreeformFormCacheReset::
+reset()` now clears BOTH `FormsService::$cache` (forms lookups) AND
+`FieldProvider::$cache` (field rows) in one call, via a shared `clearMemo()`
+(public, pure reflection logic — no Craft/Freeform needed to exercise it
+directly, which is what the boot-free test covers).
+
+Wired into the SINGLE existing convergence point both create_form and
+update_form already shared: `FreeformScaffoldTools::triggerPersist()`. Removed
+the two explicit `$this->flushFormCache()` call sites (one in `createForm()`,
+one in `updateForm()`) and the old private method entirely; replaced with one
+`FreeformFormCacheReset::reset()` call inside `triggerPersist()`, right after
+`assertNoPersistErrors()` confirms the save succeeded and before returning the
+form. Any FUTURE Freeform structural-write tool that routes through
+`triggerPersist()` gets this flush for free — no need to remember to call it.
+
+Verified remove AND rename/reorder are covered: the fix isn't payload-shape
+specific — `getRows($formId)`/`FormsService::$cache` are wiped unconditionally
+on every successful `triggerPersist()` call regardless of what changed in the
+diff (add/remove/rename/reorder all funnel through the same `buildUpdatePayload`
+-> `persistFormUpdate` -> `triggerPersist` path already used for #28's fix), so
+the next `getLayout()`/`get_form` always re-queries fresh rows.
+
+### Gotchas / notes for future cache-family bugs
+- Same "check which sub-family first" method as #29 paid off immediately:
+  reading the vendor source + one read-only tinker singleton-identity check
+  (`$a = $container->get($class); $b = $container->get($class); $a === $b`)
+  settled the reflection-vs-detect-only question before any code was written.
+- `FreeformFormCacheReset::clearMemo()` is deliberately public and takes a
+  plain `?object` so it's testable with bare stubs (mirrors the existing
+  `FreeformLayoutCacheReset` test style) without needing Craft/Freeform
+  booted; `reset()` itself just resolves the two real services (each behind
+  its own `class_exists()` guard) and delegates to it.
+- pint removed the leading `\` from `\Craft::$container` (global-namespace
+  import fixer) — harmless, `use Craft;` already covers it.
+
+Files: `src/support/FreeformFormCacheReset.php` (new, replaces #26's
+`flushFormCache()`), `src/tools/FreeformScaffoldTools.php` (import, 1 call
+site in `triggerPersist()`, removed 2 old call sites + old private method),
+`tests/Unit/Support/FreeformFormCacheResetTest.php` (new, boot-free, 8 cases).
+Tests 494 passed, phpstan clean.
+
+### Live-verify still needed
+Worktree isn't the live MCP server (symlinked `mbd/vendor/2rm/craft-mcp`
+needs SIGHUP to pick up code). Confirm end-to-end: create_form (6 fields) ->
+update_form removing a field -> get_form in the SAME session shows the field
+gone (repro from the issue body); then repeat for a rename-only and a
+reorder-only update_form call and confirm get_form reflects each without a
+restart.
