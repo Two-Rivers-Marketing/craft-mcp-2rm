@@ -16,6 +16,7 @@ use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\FreeformSerializer;
+use twoRivers\craft\Mcp\support\FreeformStaleFormCache;
 use twoRivers\craft\Mcp\support\Response;
 use twoRivers\craft\Mcp\support\SafeExecution;
 
@@ -98,17 +99,25 @@ class FreeformTools implements ConditionalToolProvider {
         return $summary;
     }
 
-    private function submissionCount(mixed $formId): ?int {
+    private function submissionCount(mixed $formId): int|string|null {
         if (!is_numeric($formId) || !class_exists(Submission::class)) {
             return null;
         }
 
         try {
             // count() returns a string from the DB layer; cast to int or the
-            // ?int return type throws a TypeError under strict_types (silently
+            // int return type throws a TypeError under strict_types (silently
             // swallowed by the catch, surfacing as a null count).
             return (int) Submission::find()->formId((int) $formId)->status(null)->count();
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            // A form created after the MCP server started trips Freeform's
+            // stale in-process form map (undefined array key in
+            // SubmissionQuery). Degrade to a clear reload signal instead of a
+            // silent null so list_forms still succeeds for every other form.
+            if (FreeformStaleFormCache::isStaleFormCacheError($e)) {
+                return FreeformStaleFormCache::RELOAD_SIGNAL;
+            }
+
             return null;
         }
     }
@@ -154,7 +163,7 @@ class FreeformTools implements ConditionalToolProvider {
             $this->applyStatusFilter($query, $status);
             $query->limit($limit)->offset($offset);
 
-            $submissions = $query->all();
+            $submissions = FreeformStaleFormCache::guard(static fn (): array => $query->all());
             $result = array_map(FreeformSerializer::submissionSummary(...), $submissions);
 
             return Response::list('submissions', $result, [
@@ -178,7 +187,7 @@ class FreeformTools implements ConditionalToolProvider {
         return SafeExecution::run(function () use ($id): array {
             $this->assertFreeformAvailable();
 
-            $submission = $this->resolveSubmission($id);
+            $submission = FreeformStaleFormCache::guard(fn (): object => $this->resolveSubmission($id));
             $handles = $this->fieldHandlesOf($this->formOf($submission));
 
             return Response::found('submission', [
@@ -200,14 +209,18 @@ class FreeformTools implements ConditionalToolProvider {
         return SafeExecution::run(function () use ($id, $dryRun): array {
             $this->assertFreeformAvailable();
 
-            $submission = $this->resolveSubmission($id);
+            $submission = FreeformStaleFormCache::guard(fn (): object => $this->resolveSubmission($id));
             $summary = FreeformSerializer::submissionSummary($submission);
 
             if ($dryRun) {
                 return Response::success(['dryRun' => true, 'submission' => $summary]);
             }
 
-            if (!Craft::$app->getElements()->deleteElement($submission)) {
+            $deleted = FreeformStaleFormCache::guard(
+                static fn (): bool => Craft::$app->getElements()->deleteElement($submission),
+            );
+
+            if (!$deleted) {
                 throw new ToolCallException("Failed to delete submission {$id}.");
             }
 
@@ -242,9 +255,10 @@ class FreeformTools implements ConditionalToolProvider {
             $this->applySinceFilter($query, $since);
             $this->applyLimit($query, $limit);
 
+            $submissions = FreeformStaleFormCache::guard(static fn (): array => $query->all());
             $rows = array_map(
                 fn (object $submission): array => $this->exportRow($submission, $handles),
-                $query->all(),
+                $submissions,
             );
             $headers = ['id', 'dateCreated', 'status', ...$handles];
             $csv = FreeformSerializer::toCsv($rows, $headers);
