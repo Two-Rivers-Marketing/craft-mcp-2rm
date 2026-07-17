@@ -11,13 +11,13 @@ use craft\helpers\StringHelper;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
-use ReflectionObject;
 use stdClass;
-use Throwable;
 use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 use twoRivers\craft\Mcp\enums\ToolCategory;
+use twoRivers\craft\Mcp\support\FreeformFormCacheReset;
 use twoRivers\craft\Mcp\support\FreeformFormPlan;
+use twoRivers\craft\Mcp\support\FreeformLayoutCacheReset;
 use twoRivers\craft\Mcp\support\Response;
 use twoRivers\craft\Mcp\support\SafeExecution;
 use yii\base\Event;
@@ -107,7 +107,6 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
             }
 
             $form = $this->runAsAdmin(fn (): object => $this->persistForm($name, $formHandle, $specs));
-            $this->flushFormCache();
             $summary['form'] = ['id' => $this->readFormId($form), ...$summary['form']];
 
             return Response::success($summary);
@@ -153,7 +152,6 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
             $payload = $this->buildUpdatePayload($formId, $page, $layoutUid, $plan);
 
             $updated = $this->runAsAdmin(fn (): object => $this->persistFormUpdate($payload, $formId));
-            $this->flushFormCache();
 
             return Response::success(['form' => ['id' => $this->readFormId($updated)], 'diff' => $diff]);
         });
@@ -536,6 +534,12 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
         $event = $this->makePersistEvent($payload, $formId);
         $controller = self::FORMS_CONTROLLER_CLASS;
 
+        // Bust LayoutPersistence's stale per-request row-id memo before saving,
+        // or a newly-added field's row would resolve to a null rowId in the
+        // long-running server and be orphaned (issue #28). See the helper's
+        // docblock. Shared by create_form and update_form via this method.
+        FreeformLayoutCacheReset::reset($controller, (string) constant($controller . '::EVENT_UPSERT_FORM'));
+
         Event::trigger($controller, (string) constant($controller . '::' . $primaryEventConst), $event);
         Event::trigger($controller, (string) constant($controller . '::EVENT_UPSERT_FORM'), $event);
 
@@ -545,6 +549,14 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
         if (!is_object($form)) {
             throw new ToolCallException('Freeform did not return a form after the operation.');
         }
+
+        // Bust FormsService's and FieldProvider's stale per-request read
+        // memos after a successful save, or a subsequent get_form/list_forms
+        // in this same long-running session would keep returning the
+        // pre-mutation form/field list (issue #30). Shared by create_form
+        // and update_form (and any future Freeform structural-write tool)
+        // via this single call site.
+        FreeformFormCacheReset::reset();
 
         return $form;
     }
@@ -776,49 +788,6 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
         $freeform = self::FREEFORM_CLASS;
 
         return $freeform::getInstance()->forms;
-    }
-
-    /**
-     * Bust Freeform's process-static form cache after a create.
-     *
-     * Freeform's FormsService memoizes forms in a Solspace\Freeform\Library\
-     * Cache\Memo instance (its private $cache) meant to live for a single web
-     * request. In the long-running MCP server that forms-service singleton —
-     * and its Memo — persist across tool calls, and the create path never
-     * clears them. Two stale reads result until a server restart:
-     * assertHandleAvailable()'s pre-save getFormByHandle() of the new handle
-     * caches a null under that handle (so a follow-up get_form by handle
-     * returns "not found"), and any earlier list_forms freezes the all-forms
-     * list (so list_forms omits the new form). Clearing the Memo makes the
-     * new form visible to follow-up calls immediately.
-     *
-     * ponytail: reaches into a Freeform-internal service via reflection —
-     * FormsService exposes no public cache-clear method — fully guarded, so
-     * if Freeform renames the property or drops clear() the cache simply
-     * isn't busted (no fatal). Echo-only: never fails the persisted create.
-     */
-    private function flushFormCache(): void {
-        try {
-            $forms = $this->freeformForms();
-        } catch (Throwable) {
-            return;
-        }
-
-        if (!is_object($forms)) {
-            return;
-        }
-
-        $reflection = new ReflectionObject($forms);
-        if (!$reflection->hasProperty('cache')) {
-            return;
-        }
-
-        $cache = $reflection->getProperty('cache')->getValue($forms);
-        if (!is_object($cache) || !method_exists($cache, 'clear')) {
-            return;
-        }
-
-        $cache->clear();
     }
 
     /**
