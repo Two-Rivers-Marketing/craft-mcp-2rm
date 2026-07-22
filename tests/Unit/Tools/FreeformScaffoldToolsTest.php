@@ -83,7 +83,7 @@ describe('FreeformScaffoldTools method signatures', function () {
 });
 
 describe('FreeformScaffoldTools tool count', function () {
-    it('has exactly 2 public methods with McpTool attribute', function () {
+    it('has exactly 3 public methods with McpTool attribute', function () {
         $reflection = new ReflectionClass(FreeformScaffoldTools::class);
         $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC);
 
@@ -95,7 +95,68 @@ describe('FreeformScaffoldTools tool count', function () {
             return !empty($method->getAttributes(McpTool::class));
         });
 
-        expect($toolMethods)->toHaveCount(2);
+        expect($toolMethods)->toHaveCount(3);
+    });
+});
+
+describe('FreeformScaffoldTools delete_form tool', function () {
+    it('has delete_form tool with McpTool attribute', function () {
+        $reflection = new ReflectionMethod(FreeformScaffoldTools::class, 'deleteForm');
+        $attributes = $reflection->getAttributes(McpTool::class);
+
+        expect($attributes)->toHaveCount(1);
+
+        $instance = $attributes[0]->newInstance();
+        expect($instance->name)->toBe('delete_form')
+            ->and($instance->description)->toContain('destructive')
+            ->and($instance->description)->toContain('irreversible')
+            ->and($instance->description)->toContain('dryRun')
+            ->and($instance->description)->toContain('confirm')
+            ->and($instance->description)->toContain('orphan')
+            ->and($instance->description)->toContain('SIGHUP');
+    });
+
+    it('marks delete_form dangerous in the content category', function () {
+        $reflection = new ReflectionMethod(FreeformScaffoldTools::class, 'deleteForm');
+        $attributes = $reflection->getAttributes(McpToolMeta::class);
+
+        expect($attributes)->toHaveCount(1);
+
+        $instance = $attributes[0]->newInstance();
+        expect($instance->category)->toBe(ToolCategory::CONTENT)
+            ->and($instance->dangerous)->toBeTrue();
+    });
+
+    it('deleteForm takes optional handle, id, dryRun, confirm and context', function () {
+        $reflection = new ReflectionMethod(FreeformScaffoldTools::class, 'deleteForm');
+        $parameters = $reflection->getParameters();
+
+        expect($parameters)->toHaveCount(5);
+
+        expect($parameters[0]->getName())->toBe('handle')
+            ->and($parameters[0]->isOptional())->toBeTrue()
+            ->and($parameters[0]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[1]->getName())->toBe('id')
+            ->and($parameters[1]->isOptional())->toBeTrue()
+            ->and($parameters[1]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[2]->getName())->toBe('dryRun')
+            ->and($parameters[2]->isOptional())->toBeTrue()
+            ->and($parameters[2]->getType()?->getName())->toBe('bool')
+            ->and($parameters[2]->getDefaultValue())->toBeFalse();
+
+        expect($parameters[3]->getName())->toBe('confirm')
+            ->and($parameters[3]->isOptional())->toBeTrue()
+            ->and($parameters[3]->getType()?->allowsNull())->toBeTrue();
+
+        expect($parameters[4]->getName())->toBe('context')
+            ->and($parameters[4]->isOptional())->toBeTrue();
+    });
+
+    it('deleteForm returns array', function () {
+        $reflection = new ReflectionMethod(FreeformScaffoldTools::class, 'deleteForm');
+        expect($reflection->getReturnType()?->getName())->toBe('array');
     });
 });
 
