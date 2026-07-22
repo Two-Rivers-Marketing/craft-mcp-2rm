@@ -6,3 +6,5 @@ DEVELOPMENT.md
 .phpstan.cache/
 /dev/
 /docs/superpowers/
+/.claude/
+/.worktrees/
