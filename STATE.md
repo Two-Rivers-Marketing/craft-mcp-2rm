@@ -1,7 +1,7 @@
 # STATE — craft-mcp-2rm
 
-**Updated:** 2026-07-22 (nightshift run `2026-07-21-2003` — #30 completion + `delete_form`, on branch, unmerged)
-**Status:** Active — branch `nightshift/2026-07-21-2003` pushed (511 tests green, phpstan clean); **live-verify + merge pending** (MCP was disconnected this run)
+**Updated:** 2026-07-23 (nightshift run `2026-07-21-2003` — #30 completion + `delete_form` MERGED to main)
+**Status:** Active — merged to `main` (`6ac5375`, pushed; 511 tests green, phpstan clean); **live-verify still pending** (MCP was disconnected this run, needs SIGHUP)
 
 ## Current status
 
