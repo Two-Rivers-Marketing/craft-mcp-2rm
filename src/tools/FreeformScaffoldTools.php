@@ -16,14 +16,17 @@ use twoRivers\craft\Mcp\attributes\McpToolMeta;
 use twoRivers\craft\Mcp\contracts\ConditionalToolProvider;
 use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\FreeformFormCacheReset;
+use twoRivers\craft\Mcp\support\FreeformFormDeletionCascade;
 use twoRivers\craft\Mcp\support\FreeformFormPlan;
 use twoRivers\craft\Mcp\support\FreeformLayoutCacheReset;
+use twoRivers\craft\Mcp\support\FreeformStaleFormCache;
 use twoRivers\craft\Mcp\support\Response;
 use twoRivers\craft\Mcp\support\SafeExecution;
 use yii\base\Event;
 
 /**
- * Freeform form-scaffolding tools for Craft CMS: create_form and update_form.
+ * Freeform form-scaffolding tools for Craft CMS: create_form, update_form
+ * and delete_form.
  *
  * Only registered if the Freeform plugin (solspace/craft-freeform) is
  * installed. create_form creates a minimal single-page form from a simple
@@ -33,9 +36,15 @@ use yii\base\Event;
  * edits an existing single-page form's fields the same way, but via the
  * update + upsert events, reusing existing field/row UIDs for kept fields so
  * Freeform updates the same underlying records (and submission-content
- * columns) in place instead of dropping and recreating them. All Freeform
- * access is through lazily-resolved string FQCNs / duck-typed calls so this
- * class loads and its isAvailable() check runs safely when Freeform is absent.
+ * columns) in place instead of dropping and recreating them. delete_form
+ * deletes a form, all its submissions, and its full backing structure: it
+ * calls Freeform's own FormsService::deleteById() (which drops the form
+ * record and per-form content table and deletes the submission elements),
+ * then cleans the structural orphan cascade that call leaves behind (see
+ * FreeformFormDeletionCascade), asserts 0 orphan rows remain, and flushes the
+ * in-process read caches. All Freeform access is through lazily-resolved
+ * string FQCNs / duck-typed calls so this class loads and its isAvailable()
+ * check runs safely when Freeform is absent.
  *
  * v1 scope is intentionally minimal (see docs/wiki/plans/create-form-tool.md):
  * a single page, one field per row (update_form additionally tolerates
@@ -62,6 +71,9 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
 
     /** Freeform plugin class (for the forms service). */
     private const FREEFORM_CLASS = 'Solspace\\Freeform\\Freeform';
+
+    /** Freeform submission element (for the per-form content-table name). */
+    private const SUBMISSION_ELEMENT_CLASS = 'Solspace\\Freeform\\Elements\\Submission';
 
     /**
      * Check if the Freeform plugin is available.
@@ -155,6 +167,132 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
 
             return Response::success(['form' => ['id' => $this->readFormId($updated)], 'diff' => $diff]);
         });
+    }
+
+    /**
+     * Delete a Freeform form, its submissions, and its full backing structure.
+     */
+    #[McpTool(
+        name: 'delete_form',
+        description: 'Delete a Freeform form, ALL of its submissions, and its full backing structure. Identify the form by handle or id (one is required). This is destructive and irreversible: it permanently deletes every submission and its stored data. It calls Freeform\'s own delete (which removes the form record, drops the per-form submission content table, and deletes the submission elements), then cleans the full structural orphan cascade Freeform\'s delete leaves behind — freeform_forms_fields, _rows, _pages, _layouts, the freeform_submissions meta rows, and the submissions\' searchindex/elements_sites/elements rows — asserts 0 orphan rows remain, and flushes the in-process read caches so a subsequent list_forms/get_form no longer returns the form. Pass dryRun: true FIRST to preview the form, its submission count, the content table name, and every table/row-count that would be deleted, without deleting anything. To actually delete, pass confirm set to the target form\'s exact handle (echoed back from the dryRun preview) — a bare call without a matching confirm will NOT delete. If the form was created in this same MCP session, the delete may report that an MCP reload (SIGHUP) is required rather than completing, because Freeform caches its form map in a process-lifetime static.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
+    public function deleteForm(
+        ?string $handle = null,
+        ?int $id = null,
+        bool $dryRun = false,
+        ?string $confirm = null,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(fn (): array => FreeformStaleFormCache::guard(
+            fn (): array => $this->runDelete($handle, $id, $dryRun, $confirm),
+        ));
+    }
+
+    /**
+     * Resolve the target, build the would-delete summary, and (unless dryRun)
+     * perform the vendor delete + full orphan-cascade cleanup, asserting the
+     * cascade is clean and flushing the in-process read caches afterwards.
+     *
+     * @throws ToolCallException
+     */
+    private function runDelete(?string $handle, ?int $id, bool $dryRun, ?string $confirm): array {
+        $form = $this->resolveForm($handle, $id);
+        $formId = $this->requireFormId($form);
+        $formHandle = $this->readFormHandle($form);
+        $contentTable = $this->contentTableName($formId, $formHandle);
+
+        $db = Craft::$app->getDb();
+        $submissionIds = FreeformFormDeletionCascade::collectSubmissionIds($db, $formId);
+        $specs = FreeformFormDeletionCascade::buildSpecs($formId, $submissionIds);
+
+        if ($dryRun) {
+            $wouldDelete = FreeformFormDeletionCascade::countSpecs($db, $specs);
+
+            return Response::success(FreeformFormDeletionCascade::dryRunSummary(
+                $formId,
+                $formHandle,
+                $contentTable,
+                count($submissionIds),
+                $wouldDelete,
+            ));
+        }
+
+        $this->assertConfirmed($confirm, $formHandle);
+
+        $this->vendorDelete($formId);
+
+        $cleaned = FreeformFormDeletionCascade::deleteSpecs($db, $specs);
+        $remaining = FreeformFormDeletionCascade::countSpecs($db, $specs);
+
+        // Flush FormsService / FieldProvider / LayoutsService read memos so a
+        // same-session list_forms/get_form no longer returns the deleted form
+        // (issue #31 requirement C; the reset also covers the #30 flush).
+        FreeformFormCacheReset::reset();
+
+        return Response::success(FreeformFormDeletionCascade::deletedSummary(
+            $formId,
+            $formHandle,
+            $contentTable,
+            count($submissionIds),
+            $cleaned,
+            $remaining,
+        ));
+    }
+
+    /**
+     * Delete the form via Freeform's own FormsService::deleteById(), which
+     * removes the form record, drops the per-form content table, and deletes
+     * the submission elements. Returns whether a form record was removed.
+     *
+     * @throws ToolCallException
+     */
+    private function vendorDelete(int $formId): bool {
+        $deleted = (bool) $this->freeformForms()->deleteById($formId);
+        if ($deleted) {
+            return true;
+        }
+
+        throw new ToolCallException("Freeform declined to delete form {$formId}.");
+    }
+
+    /**
+     * Confirmation guard: a real delete requires confirm to equal the target
+     * form's exact handle, so a bare accidental call can never wipe a form.
+     *
+     * @throws ToolCallException
+     */
+    private function assertConfirmed(?string $confirm, string $handle): void {
+        if ($handle !== '' && $confirm === $handle) {
+            return;
+        }
+
+        throw new ToolCallException(sprintf(
+            "delete_form is destructive and irreversible. To confirm, re-call with confirm: '%s' (the target form's exact handle). Run with dryRun: true first to preview everything that would be deleted.",
+            $handle,
+        ));
+    }
+
+    private function readFormHandle(object $form): string {
+        if (method_exists($form, 'getHandle')) {
+            return (string) $form->getHandle();
+        }
+
+        return (string) ($form->handle ?? '');
+    }
+
+    /**
+     * Resolve the per-form submission content table name via Freeform's own
+     * Submission::generateContentTableName(), duck-typed so this loads without
+     * Freeform present.
+     */
+    private function contentTableName(int $formId, string $handle): string {
+        $submission = self::SUBMISSION_ELEMENT_CLASS;
+        if (!class_exists($submission)) {
+            return '';
+        }
+
+        return (string) $submission::generateContentTableName($formId, $handle);
     }
 
     /**

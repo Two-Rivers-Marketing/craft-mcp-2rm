@@ -90,6 +90,68 @@ describe('FreeformFormCacheReset::clearMemo', function () {
     });
 });
 
+describe('FreeformFormCacheReset::clearArrayProps', function () {
+    // LayoutsService (issue #30, reopened) has no Memo object at all — its
+    // memoized state IS a set of private plain arrays (pages/rows/layouts
+    // keyed by stable form id, formLayouts keyed by Form object identity).
+    // clearArrayProps reflection-empties each named property directly,
+    // rather than calling ->clear() on some nested cache object.
+    function makeLayoutsServiceStub(): object {
+        return new class () {
+            private array $pages = [1 => ['id' => 1]];
+
+            private array $layouts = [1 => ['id' => 2]];
+
+            private array $rows = [1 => ['id' => 3]];
+
+            private array $formLayouts = [123 => 'some-form-layout'];
+
+            /** @return array<string, array<mixed>> */
+            public function snapshot(): array {
+                return [
+                    'pages' => $this->pages,
+                    'layouts' => $this->layouts,
+                    'rows' => $this->rows,
+                    'formLayouts' => $this->formLayouts,
+                ];
+            }
+        };
+    }
+
+    it('empties every named private array property', function () {
+        $service = makeLayoutsServiceStub();
+
+        FreeformFormCacheReset::clearArrayProps($service, ['pages', 'layouts', 'rows', 'formLayouts']);
+
+        expect($service->snapshot())->toBe([
+            'pages' => [],
+            'layouts' => [],
+            'rows' => [],
+            'formLayouts' => [],
+        ]);
+    });
+
+    it('no-ops without throwing for a null service', function () {
+        FreeformFormCacheReset::clearArrayProps(null, ['pages']);
+    })->throwsNoExceptions();
+
+    it('skips properties the service does not have, without throwing', function () {
+        $bare = new class () {
+        };
+
+        FreeformFormCacheReset::clearArrayProps($bare, ['pages', 'rows']);
+    })->throwsNoExceptions();
+
+    it('leaves properties not in the list untouched', function () {
+        $service = makeLayoutsServiceStub();
+
+        FreeformFormCacheReset::clearArrayProps($service, ['pages']);
+
+        expect($service->snapshot()['pages'])->toBe([])
+            ->and($service->snapshot()['rows'])->toBe([1 => ['id' => 3]]);
+    });
+});
+
 describe('FreeformFormCacheReset::reset', function () {
     it('no-ops without throwing when Freeform is not installed', function () {
         // In the boot-free test environment neither
