@@ -176,14 +176,35 @@ duplicate-check window, etc.) to defaults on every `update_form` call.
 reading `freeform_forms_pages.metadata` (shape `{"buttons": {...}}`) directly,
 since `update_form` v1 never edits page-level settings.
 
-## Known-still-broken
+## Cache-staleness family in the long-running server (#26 / #28 / #29 / #30)
 
-- **`get_form` `notifications` / `connections` / `spamSettings` all return null.** The `FreeformSerializer::sectionAttributes()` keyword-dump approach doesn't hit Freeform 5's real structure (notifications/integrations live in dedicated services, not flat form attributes). This defeats the tool's stated "why didn't this submission create an entry" purpose. Not yet fixed — see [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
+The single most recurring class of bug in this plugin. Freeform's services memoize per-request state assuming a fresh PHP process per web request; the MCP server (`bin/mcp-server`) is **long-running**, so those memos survive across tool calls and go stale after a write. `clear_caches` does NOT help — it clears Craft's cache layer, not in-process PHP object state; only a SIGHUP restart does. The write tools must reset the relevant memo themselves after every structural write.
 
-- **Add-field can leave the field orphaned → not rendered in CP (#28).** Surfaced from live CP use *after* the write tools merged: adding a `dropdown` via `update_form` created the field record and a layout row, but the tool reported success while the CP rendered nothing. Two distinct failure modes, both must be checked when fixing:
-  1. `craft_freeform_forms_fields.rowId` left **null** — the field points at no row.
-  2. the new `craft_freeform_forms_rows` row was created with a **blank `uid`** — and `LayoutsService::attachRows()` assembles the rendered layout by row uid, so a blank-uid row is silently dropped **even after `rowId` is corrected**. `rowId`-not-null alone is a false PASS.
-  The behavioral gate is whether the field appears in `Freeform::getInstance()->forms->getFormById($id)->getLayout()->getFields()` (what the CP renders), not whether the DB row merely exists. Scope not yet pinned: observed only on the `update_form` add-a-dropdown path; the create-with-dropdown path and update-add-a-non-dropdown path are unexercised (the "options-group" framing in the #28 title may be wrong — mode 2 is about row creation for *any* added field). Live-verify disambiguator + full suite in `docs/live-verify-handoff-2026-07-15.md`. See [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md).
+**The taxonomy is by *how the stale thing is held* → *how you reset it*** (this determines the mechanism, and getting it wrong gives a silent false-fix):
+
+| Sub-family | Example | Reset mechanism | Helper |
+| --- | --- | --- | --- |
+| **Container singleton w/ `Memo` object** | `FormsService::$cache` (#26), `FieldProvider::$cache` (#30) | `\Craft::$container->get(X)` returns the live instance → reflection-clear the private `Memo` | `FreeformFormCacheReset` |
+| **Container singleton w/ plain-array memo keyed by stable id** | `LayoutsService` (`->formLayouts`) private arrays `pages/layouts/rows/formLayouts` (#30) | live via `Freeform::getInstance()->formLayouts` → reflection-**empty the arrays** (no `Memo::clear()` exists) | `FreeformFormCacheReset` |
+| **Event-bound instance** | `LayoutPersistence` memo (#28) | container hands back an **unbound** instance; the live one is bound to `EVENT_UPSERT_FORM` → reach it via the Yii **event registry** | `FreeformLayoutCacheReset` |
+| **Method-local `static`** | `SubmissionQuery::beforePrepare()` `static $forms` / `$formHandleToIdMap` (#29) | **NOT reachable by reflection at all** → cannot reset in-process → detect the resulting crash and return an actionable "reload (SIGHUP) required" error instead | `FreeformStaleFormCache::guard()` |
+
+`FreeformFormCacheReset::reset()` (the shared helper, extended over #26→#30) now flushes FormsService + FieldProvider + LayoutsService and is called from the one `FreeformScaffoldTools::triggerPersist()` path that `create_form` / `update_form` / `delete_form` all share — so any structural-write tool flushes automatically.
+
+**Why #28 was NOT actually an orphaned-`rowId` bug.** The original #28 report theorized a missing field→row link (null `rowId` + blank row `uid`). Live diagnosis proved the DB write was *fully correct* (the payload builds a valid, linked row); the "field not rendered" symptom was the **stale `LayoutPersistence` memo** resolving the new row's id to `null` at persist time. Same story for the "field missing from `get_form`" symptom — that was the stale **`LayoutsService`** read memo (#30). The lesson from the whole family: *a Freeform write can report success and the DB can be correct while a same-session read still lies* — verify against a fresh process (Pest / post-SIGHUP), never only the same-session read.
+
+## `delete_form` — deleting a form + its full cascade (2026-07-23, #31)
+
+Completes the Freeform write CRUD surface (`create_form` / `update_form` / `delete_form`). `dangerous: true`; matches by id or handle; `dryRun` previews; a **confirm-by-handle** gate prevents accidental deletes. Three hard requirements, all from live-verify:
+
+1. **Guard the stale-static crash (A).** `Freeform::forms->deleteById()` internally runs a `Submission::find()` → trips the #29 `SubmissionQuery` static for a same-session form → wrap the delete in `FreeformStaleFormCache::guard` so it degrades to the reload signal, never an uncaught `Undefined array key`. (Submission-id gathering uses a *raw* query, which never trips it.)
+2. **Clean the FULL structural orphan cascade (B).** `deleteById()` drops the form record + the per-form content table but **leaves orphans** across 8 tables — confirmed live: `craft_freeform_forms_fields`, `_rows`, `_pages`, `_layouts`, `craft_freeform_submissions` (meta), plus the submission elements' `craft_searchindex`, `craft_elements_sites`, `craft_elements`. `delete_form` cleans them in FK-safe order (structural children→parents, then submission meta / searchindex / elements_sites before the element rows) and re-counts to assert 0 remain. Idempotent, so it's safe whether or not the DB's CASCADE FKs are live. Cascade + summary logic lives in `src/support/FreeformFormDeletionCascade.php`.
+3. **Flush read caches after delete (C).** Calls `FreeformFormCacheReset::reset()` (above) on the delete path, or a same-session `list_forms`/`get_form` keeps returning the deleted form.
+
+## Known-still-broken / in-flight
+
+- **`get_form` `notifications` / `connections` / `spamSettings` return null — FIXED but UNMERGED.** The fix (real service reads via `NotificationsService`/`IntegrationsService`, replacing the `sectionAttributes()` keyword dump) was built and live-verified on 2026-07-15 (mbd `contactForm`), but it is stranded in **draft PR #27** off branch `worktree-issue-18-freeform-getform` and **is NOT on `main`**. GitHub issue #18 is marked closed-completed, but the code hasn't landed — merge PR #27 (rebased) to actually ship it. See [../log/2026-07-27-live-verify-nightshift-and-cache-taxonomy.md](../log/2026-07-27-live-verify-nightshift-and-cache-taxonomy.md).
+- **Live-verify of #30 (complete) + #31 (`delete_form`) still pending.** Both merged to `main` (2026-07-23) but exercised only via boot-free unit tests — the `craft-mcp` MCP was disconnected during their nightshift run. Verify after SIGHUP per `docs/live-verify-handoff-2026-07-22.md`.
 
 ## Cross-references
 

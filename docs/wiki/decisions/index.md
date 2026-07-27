@@ -18,6 +18,7 @@ _(none yet)_
 | --- | --- | --- |
 | [`create_form` v1 — minimal single-page Freeform form creator](implemented/2026-07-15-create-form-tool.md) | 2026-07-15 | Issue #19. Pending live verification. |
 | [`update_form` v1 — add/remove/reorder fields on an existing single-page form](implemented/2026-07-15-update-form-tool.md) | 2026-07-15 | Issue #20. Pending live verification. |
+| [`delete_form` v1 — guarded form delete with full cascade cleanup](implemented/2026-07-23-delete-form-tool.md) | 2026-07-23 | Issue #31. Completes Freeform write CRUD. Pending live verification. |
 
 ## Superseded
 
