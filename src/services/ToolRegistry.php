@@ -21,6 +21,7 @@ use twoRivers\craft\Mcp\tools\FreeformTools;
 use twoRivers\craft\Mcp\tools\GlobalSetTools;
 use twoRivers\craft\Mcp\tools\GraphqlTools;
 use twoRivers\craft\Mcp\tools\McpTools;
+use twoRivers\craft\Mcp\tools\NavigationTools;
 use twoRivers\craft\Mcp\tools\NeoContentTools;
 use twoRivers\craft\Mcp\tools\NeoScaffoldTools;
 use twoRivers\craft\Mcp\tools\NeoSchemaTools;
@@ -341,6 +342,11 @@ final class ToolRegistry {
         // Add Freeform form-scaffolding tools (create_form) if Freeform is installed
         if (FreeformScaffoldTools::isAvailable()) {
             $tools[] = FreeformScaffoldTools::class;
+        }
+
+        // Add Navigation tools (nav/node CRUD) if verbb/navigation is installed
+        if (NavigationTools::isAvailable()) {
+            $tools[] = NavigationTools::class;
         }
 
         // Use addCoreTools which bypasses source validation
