@@ -28,6 +28,14 @@ class Settings extends Model {
 
     public bool $enableDangerousTools = true;
 
+    /**
+     * Serve the MCP server over HTTP (a Craft controller endpoint) in addition
+     * to stdio. Dev convenience only: the endpoint can run arbitrary PHP via
+     * tinker, so it only ever registers when Craft devMode is on AND a bearer
+     * token (MCP_HTTP_TOKEN) is set. Off by default.
+     */
+    public bool $httpTransport = false;
+
     /** @var string[] */
     public array $allowedIps = [];
 
@@ -53,7 +61,7 @@ class Settings extends Model {
     #[Override]
     public function defineRules(): array {
         return [
-            [['enabled', 'enableDangerousTools'], 'boolean'],
+            [['enabled', 'enableDangerousTools', 'httpTransport'], 'boolean'],
             [['disabledTools', 'disabledPrompts', 'disabledResources', 'allowedIps'], 'each', 'rule' => ['string']],
             [['logLevel'], 'in', 'range' => ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']],
             [['builderFieldHandle'], 'string'],

@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace twoRivers\craft\Mcp\services;
 
 use Craft;
+use Http\Discovery\Psr17FactoryDiscovery;
 use Mcp\Server;
 use Mcp\Server\Builder;
+use Mcp\Server\Session\FileSessionStore;
+use Mcp\Server\Transport\Http\Middleware\CorsMiddleware;
+use Mcp\Server\Transport\Http\Middleware\DnsRebindingProtectionMiddleware;
+use Mcp\Server\Transport\Http\Middleware\ProtocolVersionMiddleware;
 use Mcp\Server\Transport\StdioTransport;
+use Mcp\Server\Transport\StreamableHttpTransport;
 use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use twoRivers\craft\Mcp\Mcp;
 use twoRivers\craft\Mcp\models\ResourceDefinition;
@@ -29,8 +36,14 @@ class McpServerFactory {
 
     /**
      * Create a configured MCP Server instance.
+     *
+     * @param bool $persistentSessions Persist MCP sessions to disk instead of
+     *                                 in-memory. Required for the HTTP transport,
+     *                                 where each request is a fresh process and
+     *                                 an in-memory store would forget the session
+     *                                 established by `initialize`.
      */
-    public function create(): Server {
+    public function create(bool $persistentSessions = false): Server {
         $builder = Server::builder()
             ->setServerInfo(
                 name: 'Craft CMS MCP Server',
@@ -43,6 +56,10 @@ class McpServerFactory {
                 excludeDirs: ['vendor', 'support', 'services', 'events', 'models', 'enums', 'attributes', 'completions', 'contracts'],
             )
             ->setContainer($this->container);
+
+        if ($persistentSessions) {
+            $builder->setSession(new FileSessionStore(Craft::getAlias('@storage/mcp-sessions')));
+        }
 
         // Add custom logger if provided (writes to separate file, not Craft logs)
         if ($this->logger !== null) {
@@ -59,6 +76,33 @@ class McpServerFactory {
      */
     public function createTransport(): StdioTransport {
         return new StdioTransport();
+    }
+
+    /**
+     * Create a request-scoped StreamableHttpTransport from an incoming PSR-7
+     * request. One request in, one response out — the transport is driven by
+     * the Craft controller, not a socket loop.
+     *
+     * The default DNS-rebinding guard only allows localhost hosts, so the
+     * serving site's own hostname is added to the allow-list (the bearer token
+     * + devMode gate remain the real access control).
+     *
+     * @param list<string> $allowedHosts Hostnames (no port) permitted by the DNS-rebinding guard.
+     */
+    public function createHttpTransport(ServerRequestInterface $request, array $allowedHosts): StreamableHttpTransport {
+        $middleware = [
+            new CorsMiddleware(),
+            new DnsRebindingProtectionMiddleware([...$allowedHosts, 'localhost', '127.0.0.1', '[::1]']),
+            new ProtocolVersionMiddleware(),
+        ];
+
+        return new StreamableHttpTransport(
+            request: $request,
+            responseFactory: Psr17FactoryDiscovery::findResponseFactory(),
+            streamFactory: Psr17FactoryDiscovery::findStreamFactory(),
+            logger: $this->logger,
+            middleware: $middleware,
+        );
     }
 
     /**

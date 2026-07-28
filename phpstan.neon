@@ -29,6 +29,8 @@ parameters:
         - '#benf\\neo\\#'
         # Freeform is optional - tools check availability at runtime
         - '#Solspace\\Freeform\\#'
+        # Navigation is optional - tools check availability at runtime
+        - '#verbb\\navigation\\#'
         # create_form triggers Freeform's persist events with a duck-typed event object
         - '#Parameter \#3 \$event of static method yii\\base\\Event::trigger\(\) expects yii\\base\\Event\|null, .+ given#'
         # Missing class reference (if class doesn't exist)

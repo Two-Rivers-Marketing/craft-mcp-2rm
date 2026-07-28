@@ -7,7 +7,9 @@ namespace twoRivers\craft\Mcp;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
+use craft\events\RegisterUrlRulesEvent;
 use craft\services\Path;
+use craft\web\UrlManager;
 use Override;
 use twoRivers\craft\Mcp\events\RegisterPromptsEvent;
 use twoRivers\craft\Mcp\events\RegisterResourcesEvent;
@@ -17,6 +19,7 @@ use twoRivers\craft\Mcp\services\McpServerFactory;
 use twoRivers\craft\Mcp\services\PromptRegistry;
 use twoRivers\craft\Mcp\services\ResourceRegistry;
 use twoRivers\craft\Mcp\services\ToolRegistry;
+use yii\base\Event;
 
 /**
  * Craft MCP Plugin
@@ -84,7 +87,33 @@ class Mcp extends BasePlugin {
     public function init(): void {
         parent::init();
 
+        $this->registerHttpTransportRoute();
+
         Craft::info('Craft MCP plugin loaded', __METHOD__);
+    }
+
+    /**
+     * Register the HTTP-transport site route — dev-only convenience so code
+     * edits go live without restarting the stdio server. Gated on devMode +
+     * the httpTransport setting; the controller additionally enforces a bearer
+     * token. Off in production because the endpoint can execute arbitrary PHP.
+     */
+    private function registerHttpTransportRoute(): void {
+        if (!Craft::$app->getConfig()->getGeneral()->devMode) {
+            return;
+        }
+
+        if (!self::settings()->httpTransport) {
+            return;
+        }
+
+        Event::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+            static function (RegisterUrlRulesEvent $event): void {
+                $event->rules['mcp'] = 'mcp/mcp/handle';
+            },
+        );
     }
 
     protected function createSettingsModel(): ?Model {
