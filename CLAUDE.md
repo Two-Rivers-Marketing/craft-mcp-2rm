@@ -40,6 +40,37 @@ Two patterns (both boot-free — no Craft/plugin required): **structural** refle
 
 Consumed by the mbd site as a Composer **path repo with a symlink** (`mbd/vendor/2rm/craft-mcp` → this dir), so edits here are live in mbd instantly — no publish. The `craft-mcp` MCP server in the current session connects to mbd's Craft install; after editing plugin code, SIGHUP-restart it before the changes take effect live.
 
-## Wiki
+## Project memory
 
-Project knowledge (decisions, integration gotchas, QA backlog) lives in `docs/wiki/` — read `docs/wiki/decisions/index.md` and `docs/wiki/plans/qa-feature-backlog.md` before architecture/QA work. User-facing product docs are in `docs/*.md` / `docs/tools/` (separate from the wiki).
+Project memory lives in `docs/wiki/`, which holds what is true about this project. User-facing product docs are in `docs/*.md` / `docs/tools/` and are not project memory.
+
+### Orientation read — every session, no exceptions
+
+Before your first substantive action:
+
+1. **Enumerate.** Run this before reading anything:
+   `find docs/wiki -name '*.md' -not -path '*/raw/*'`
+   This is the map. It is generated from disk and cannot drift. Nothing you read later replaces it. Never write it to a file — `docs/wiki/` is curated, never compiled.
+2. Read `docs/wiki/index.md` — the catalog, with what each page is for.
+3. Run `ls docs/wiki/log/ | sort -r | head -10`, then Read the newest 2-3 entries — what recent sessions did.
+
+This fires for every session. Debugging, a one-line fix, code, content, strategy. No topic exempts you. If you are about to conclude "this session isn't really about project content," stop — that judgment is the documented failure mode.
+
+### Authority — agent memory is a routing aid, never project authority
+
+For any project-specific fact, decision, constraint, status, prior conclusion, or commitment:
+
+- **Search the wiki before answering or acting.** Do not answer from session memory.
+- **Prefer repository evidence over remembered context.** If they disagree, the repository wins and the memory is what's wrong.
+- **Name the wiki page you used.** An answer with no cited page is an inference, not a fact.
+- **Check freshness and supersedence** before treating a page as current.
+- **If no authoritative answer exists, say so explicitly** and label any inference as inference.
+
+**Delegation.** Never brief a subagent on documented areas from memory. Run the lookup, pass the exact paths. Recall is lossy and every spawned agent multiplies the loss.
+
+### Write
+
+- Session end: `/wrap` digests to the wiki. Do not hand-roll the digest.
+- Before writing anything into `docs/wiki/`, read `docs/wiki/WIKI-CLAUDE.md` (this wiki's filing rules) and `docs/wiki/schema.md` (required frontmatter). They are filing rules, not orientation.
+- `docs/wiki/raw/` is immutable. Never edit or delete anything under it.
+- A recorded conclusion you disprove is superseded in place, never deleted and never left standing. A stale conclusion is worse than a missing one because it will be trusted.
