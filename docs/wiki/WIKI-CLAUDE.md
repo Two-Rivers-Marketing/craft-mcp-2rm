@@ -69,6 +69,8 @@ Health-check for orphans, index gaps, dead links, stale claims, contradictions, 
 | `log/<date>-<slug>.md` | One ingest event |
 | `raw/**` | Preserved external source material (read-only) |
 
+This wiki currently has only `decisions/deferred/` and `decisions/implemented/` on disk. `active/` and `superseded/` are write-time destinations created on first use — never link a reader to either before it has content.
+
 ## Decision page template
 
 ```markdown

@@ -49,7 +49,7 @@ Project memory lives in `docs/wiki/`, which holds what is true about this projec
 Before your first substantive action:
 
 1. **Enumerate.** Run this before reading anything:
-   `find docs/wiki -name '*.md' -not -path '*/raw/*'`
+   `ls docs/wiki/*.md docs/wiki/decisions/`
    This is the map. It is generated from disk and cannot drift. Nothing you read later replaces it. Never write it to a file — `docs/wiki/` is curated, never compiled.
 2. Read `docs/wiki/index.md` — the catalog, with what each page is for.
 3. Run `ls docs/wiki/log/ | sort -r | head -10`, then Read the newest 2-3 entries — what recent sessions did.
@@ -65,8 +65,6 @@ For any project-specific fact, decision, constraint, status, prior conclusion, o
 - **Name the wiki page you used.** An answer with no cited page is an inference, not a fact.
 - **Check freshness and supersedence** before treating a page as current.
 - **If no authoritative answer exists, say so explicitly** and label any inference as inference.
-
-**Delegation.** Never brief a subagent on documented areas from memory. Run the lookup, pass the exact paths. Recall is lossy and every spawned agent multiplies the loss.
 
 ### Write
 
