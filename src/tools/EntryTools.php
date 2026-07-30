@@ -134,7 +134,9 @@ class EntryTools {
                 throw new ToolCallException('Failed to save entry: ' . json_encode($entry->getErrors()));
             }
 
-            return Response::success(['entry' => $this->serializeEntry($entry)]);
+            $writtenHandles = $fieldValues !== null ? array_keys($fieldValues) : null;
+
+            return Response::success(['entry' => $this->serializeEntry($entry, $writtenHandles)]);
         });
     }
 
@@ -183,7 +185,50 @@ class EntryTools {
                 throw new ToolCallException('Failed to save entry: ' . json_encode($entry->getErrors()));
             }
 
-            return Response::success(['entry' => $this->serializeEntry($entry)]);
+            $writtenHandles = $fieldValues !== null ? array_keys($fieldValues) : null;
+
+            return Response::success(['entry' => $this->serializeEntry($entry, $writtenHandles)]);
+        });
+    }
+
+    /**
+     * Delete an entry by ID.
+     */
+    #[McpTool(
+        name: 'delete_entry',
+        description: 'Delete an entry by ID. Pass dryRun: true to preview what would be deleted without deleting. Performs a hard delete (not soft-delete/trash).',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
+    public function deleteEntry(
+        int $id,
+        bool $dryRun = false,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($id, $dryRun): array {
+            $entry = Entry::find()->id($id)->status(null)->one();
+
+            if ($entry === null) {
+                throw new ToolCallException("Entry with ID {$id} not found");
+            }
+
+            $summary = [
+                'id' => $entry->id,
+                'title' => $entry->title,
+                'slug' => $entry->slug,
+                'sectionHandle' => $entry->getSection()?->handle, // @phpstan-ignore nullsafe.neverNull
+                'typeHandle' => $entry->getType()?->handle, // @phpstan-ignore nullsafe.neverNull
+                'url' => $entry->getUrl(),
+            ];
+
+            if ($dryRun) {
+                return Response::success(['dryRun' => true, 'entry' => $summary]);
+            }
+
+            if (!Craft::$app->getElements()->deleteElement($entry, true)) {
+                throw new ToolCallException('Failed to delete entry: ' . json_encode($entry->getErrors()));
+            }
+
+            return Response::success(['deleted' => true, 'entry' => $summary]);
         });
     }
 
@@ -240,8 +285,10 @@ class EntryTools {
 
     /**
      * Serialize an entry to array.
+     *
+     * @param list<string>|null $onlyFields When set, only these field handles are serialized (compact response for create/update).
      */
-    private function serializeEntry(Entry $entry): array {
+    private function serializeEntry(Entry $entry, ?array $onlyFields = null): array {
         $data = [
             'id' => $entry->id,
             'title' => $entry->title,
@@ -252,16 +299,16 @@ class EntryTools {
             'typeId' => $entry->typeId,
             'typeHandle' => $entry->getType()?->handle, // @phpstan-ignore nullsafe.neverNull
             'authorId' => $entry->authorId,
-            'postDate' => $entry->postDate?->format('Y-m-d H:i:s'),
-            'expiryDate' => $entry->expiryDate?->format('Y-m-d H:i:s'),
-            'dateCreated' => $entry->dateCreated?->format('Y-m-d H:i:s'),
-            'dateUpdated' => $entry->dateUpdated?->format('Y-m-d H:i:s'),
+            'postDate' => $entry->postDate?->format('c'),
+            'expiryDate' => $entry->expiryDate?->format('c'),
+            'dateCreated' => $entry->dateCreated?->format('c'),
+            'dateUpdated' => $entry->dateUpdated?->format('c'),
             'url' => $entry->getUrl(),
         ];
 
         $fieldLayout = $entry->getFieldLayout();
         if ($fieldLayout !== null) {
-            $data['fields'] = $this->serializeFields($entry, $fieldLayout);
+            $data['fields'] = $this->serializeFields($entry, $fieldLayout, $onlyFields);
         }
 
         return $data;
@@ -269,10 +316,15 @@ class EntryTools {
 
     /**
      * Serialize custom field values.
+     *
+     * @param list<string>|null $onlyFields When set, only serialize these handles.
      */
-    private function serializeFields(Entry $entry, mixed $fieldLayout): array {
+    private function serializeFields(Entry $entry, mixed $fieldLayout, ?array $onlyFields = null): array {
         $fieldValues = [];
         foreach ($fieldLayout->getCustomFields() as $field) {
+            if ($onlyFields !== null && !in_array($field->handle, $onlyFields, true)) {
+                continue;
+            }
             $fieldValues[$field->handle] = Serializer::serialize($entry->getFieldValue($field->handle));
         }
 

@@ -96,15 +96,18 @@ class TinkerTools {
             $this->logger->debug('Tinker executing', ['code' => mb_substr($code, 0, 200)]);
 
             foreach (self::BLOCKED_PATTERNS as $pattern) {
-                if (!preg_match($pattern, $code)) {
+                if (!preg_match($pattern, $code, $matches)) {
                     continue;
                 }
 
-                $this->logger->debug('Tinker blocked by security pattern', ['pattern' => $pattern]);
+                $matched = trim($matches[0]);
+                $this->logger->debug('Tinker blocked by security pattern', ['pattern' => $pattern, 'matched' => $matched]);
+
+                $hint = $matched === 'copy(' ? ' Use upload_asset to stage files for asset creation.' : '';
 
                 return $this->response(
                     $code,
-                    $this->formatError('SecurityError', 'Code contains a blocked pattern. Shell commands, file writes, eval, and unbounded output-buffer teardown loops are not allowed.'),
+                    $this->formatError('SecurityError', "Blocked pattern: `{$matched}`. Shell commands, file writes, eval, and unbounded output-buffer teardown loops are not allowed.{$hint}"),
                 );
             }
 

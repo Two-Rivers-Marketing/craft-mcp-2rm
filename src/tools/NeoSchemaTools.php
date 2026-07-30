@@ -6,6 +6,7 @@ namespace twoRivers\craft\Mcp\tools;
 
 use benf\neo\Plugin as Neo;
 use Craft;
+use craft\web\View;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
@@ -144,17 +145,45 @@ class NeoSchemaTools implements ConditionalToolProvider {
     }
 
     /**
-     * Serialize a block type, checking for a matching body_blocks template.
+     * Serialize a block type, resolving its template across all registered
+     * template roots (not just the site templates path).
      *
      * @return array<string, mixed>
      */
     private function serializeBlockType(object $blockType): array {
         $handle = (string) ($blockType->handle ?? '');
-        $templatePath = "body_blocks/{$handle}.twig";
-        $absolutePath = Craft::$app->getPath()->getSiteTemplatesPath()
-            . DIRECTORY_SEPARATOR . 'body_blocks'
-            . DIRECTORY_SEPARATOR . $handle . '.twig';
+        $topLevel = (bool) ($blockType->topLevel ?? true);
 
-        return NeoSerializer::blockType($blockType, is_file($absolutePath), $templatePath);
+        $candidates = $topLevel
+            ? ["body_blocks/{$handle}.twig"]
+            : ["_includes/columnItems/{$handle}.twig", "body_blocks/{$handle}.twig"];
+
+        /** @var View $view */
+        $view = Craft::$app->getView();
+        $siteRoot = Craft::$app->getPath()->getSiteTemplatesPath();
+        $resolvedPath = null;
+        $resolvedAbsolute = null;
+
+        foreach ($candidates as $candidate) {
+            $absolute = $view->resolveTemplate($candidate, View::TEMPLATE_MODE_SITE);
+            if ($absolute === false) {
+                continue;
+            }
+            $resolvedPath = $candidate;
+            $resolvedAbsolute = $absolute;
+            break;
+        }
+
+        $servedBy = null;
+        if ($resolvedAbsolute !== null) {
+            $servedBy = str_starts_with($resolvedAbsolute, $siteRoot) ? 'project' : 'plugin';
+        }
+
+        return NeoSerializer::blockType(
+            $blockType,
+            $resolvedAbsolute !== null,
+            $resolvedPath ?? $candidates[0],
+            $servedBy,
+        );
     }
 }

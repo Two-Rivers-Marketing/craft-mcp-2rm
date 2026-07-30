@@ -37,7 +37,7 @@ final class Serializer {
         }
 
         if ($value instanceof DateTime || $value instanceof DateTimeImmutable) {
-            return $value->format('Y-m-d H:i:s');
+            return $value->format('c');
         }
 
         if ($value instanceof Asset) {

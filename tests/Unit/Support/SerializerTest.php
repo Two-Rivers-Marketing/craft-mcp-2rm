@@ -32,18 +32,25 @@ describe('Serializer::serialize() with scalars', function () {
 });
 
 describe('Serializer::serialize() with dates', function () {
-    it('formats DateTime objects', function () {
-        $date = new DateTime('2024-06-15 14:30:00');
+    it('formats DateTime objects as ISO-8601', function () {
+        $date = new DateTime('2024-06-15 14:30:00', new DateTimeZone('UTC'));
         $result = Serializer::serialize($date);
 
-        expect($result)->toBe('2024-06-15 14:30:00');
+        expect($result)->toBe('2024-06-15T14:30:00+00:00');
     });
 
-    it('formats DateTimeImmutable objects', function () {
-        $date = new DateTimeImmutable('2024-01-01 00:00:00');
+    it('formats DateTimeImmutable objects as ISO-8601', function () {
+        $date = new DateTimeImmutable('2024-01-01 00:00:00', new DateTimeZone('UTC'));
         $result = Serializer::serialize($date);
 
-        expect($result)->toBe('2024-01-01 00:00:00');
+        expect($result)->toBe('2024-01-01T00:00:00+00:00');
+    });
+
+    it('preserves timezone offset in ISO-8601 output', function () {
+        $date = new DateTime('2024-06-15 14:30:00', new DateTimeZone('America/New_York'));
+        $result = Serializer::serialize($date);
+
+        expect($result)->toBe('2024-06-15T14:30:00-04:00');
     });
 });
 
@@ -73,10 +80,10 @@ describe('Serializer::serialize() with arrays', function () {
     });
 
     it('serializes arrays with dates', function () {
-        $date = new DateTime('2024-06-15 14:30:00');
+        $date = new DateTime('2024-06-15 14:30:00', new DateTimeZone('UTC'));
         $result = Serializer::serialize(['created' => $date]);
 
-        expect($result)->toBe(['created' => '2024-06-15 14:30:00']);
+        expect($result)->toBe(['created' => '2024-06-15T14:30:00+00:00']);
     });
 
     it('truncates large arrays at 100 items', function () {

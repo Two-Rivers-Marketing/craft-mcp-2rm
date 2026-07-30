@@ -19,11 +19,12 @@ final class NeoSerializer {
      * Serialize a Neo block type (benf\neo\models\BlockType) to an array.
      *
      * @param object $blockType The Neo BlockType model (duck-typed)
-     * @param bool|null $templateExists Whether a matching body_blocks template exists
-     * @param string|null $templatePath Site-relative template path that was checked
+     * @param bool|null $templateExists Whether a matching template was resolved
+     * @param string|null $templatePath Site-relative template path that resolved (or first candidate tried)
+     * @param string|null $servedBy Which template root serves it: 'project' or 'plugin'
      * @return array<string, mixed>
      */
-    public static function blockType(object $blockType, ?bool $templateExists = null, ?string $templatePath = null): array {
+    public static function blockType(object $blockType, ?bool $templateExists = null, ?string $templatePath = null, ?string $servedBy = null): array {
         $result = [
             'handle' => self::prop($blockType, 'handle'),
             'name' => self::prop($blockType, 'name'),
@@ -34,10 +35,14 @@ final class NeoSerializer {
         ];
 
         if ($templatePath !== null) {
-            $result['template'] = [
+            $template = [
                 'path' => $templatePath,
                 'exists' => (bool) $templateExists,
             ];
+            if ($servedBy !== null) {
+                $template['servedBy'] = $servedBy;
+            }
+            $result['template'] = $template;
         }
 
         return $result;

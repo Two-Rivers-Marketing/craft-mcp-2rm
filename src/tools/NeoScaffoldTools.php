@@ -14,8 +14,10 @@ use craft\base\FieldInterface;
 use craft\fieldlayoutelements\CustomField;
 use craft\fields\Assets as AssetsField;
 use craft\fields\Dropdown;
+use craft\fields\Entries as EntriesField;
 use craft\fields\Lightswitch;
 use craft\fields\PlainText;
+use craft\fields\Users as UsersField;
 use craft\helpers\FileHelper as CraftFileHelper;
 use craft\helpers\StringHelper;
 use craft\models\FieldLayout;
@@ -54,6 +56,8 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         'dropdown' => Dropdown::class,
         'lightswitch' => Lightswitch::class,
         'asset' => AssetsField::class,
+        'entries' => EntriesField::class,
+        'users' => UsersField::class,
     ];
 
     /** CKEditor field class (optional plugin), used for the richText type. */
@@ -71,7 +75,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      */
     #[McpTool(
         name: 'create_block_type',
-        description: 'Create a new Neo block type (content-builder component) atomically: the block type, its attached fields, and a rendered body_blocks template stub in one call. name is the display name; handle defaults to its camelCase form. Attach existing fields by handle via existingFields (JSON array of strings; an error lists close candidates for unknown handles). Create fields via newFields (JSON array of {name, handle?, type, options?, required?} objects; type is one of plainText, richText, dropdown, lightswitch, asset; dropdown requires options as [{label, value}]). Before creating, each newFields entry is checked against existing fields (same handle, or same type with a similar name) — a match is attached and reported instead of creating a duplicate. childBlockTypes (JSON array of block type handles) marks the block as a container and adds a block.children loop to the stub. The stub is written to templates/body_blocks/<handle>.twig and NEVER overwrites an existing file; pass scaffoldTemplate: false to skip it. The block type is attached to the configured builder Neo field (or fieldHandle) and saved through Neo\'s API so Craft writes the project-config YAML. Pass dryRun: true to preview the block type summary, the field attach/create/match plan, and the stub path + content without saving anything.',
+        description: 'Create a new Neo block type (content-builder component) atomically: the block type, its attached fields, and a rendered template stub in one call. name is the display name; handle defaults to its camelCase form. topLevel (default true) controls whether the block type appears at the top level of the field; set to false for child-only types. Attach existing fields by handle via existingFields (JSON array of strings; an error lists close candidates for unknown handles). Create fields via newFields (JSON array of {name, handle?, type, options?, sources?, maxRelations?, required?} objects; type is one of plainText, richText, dropdown, lightswitch, asset, entries, users; dropdown requires options as [{label, value}]; entries/users accept sources (default "*") and maxRelations). Before creating, each newFields entry is checked against existing fields (same handle, or same type with a similar name) — a match is attached and reported instead of creating a duplicate. childBlockTypes (JSON array of block type handles) marks the block as a container and adds a block.children loop to the stub. The stub is written to templates/body_blocks/<handle>.twig and NEVER overwrites an existing file; pass scaffoldTemplate: false to skip it (recommended for child-only types whose template path differs). The block type is attached to the configured builder Neo field (or fieldHandle) and saved through Neo\'s API so Craft writes the project-config YAML. Pass dryRun: true to preview the block type summary, the field attach/create/match plan, and the stub path + content without saving anything.',
     )]
     #[McpToolMeta(category: ToolCategory::SCHEMA, dangerous: true)]
     public function createBlockType(
@@ -81,6 +85,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         ?string $existingFields = null,
         ?string $newFields = null,
         ?string $childBlockTypes = null,
+        bool $topLevel = true,
         bool $scaffoldTemplate = true,
         bool $dryRun = false,
         ?RequestContext $context = null,
@@ -92,6 +97,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
             $existingFields,
             $newFields,
             $childBlockTypes,
+            $topLevel,
             $scaffoldTemplate,
             $dryRun,
         ): array {
@@ -105,6 +111,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
                 $existingFields,
                 $newFields,
                 $childBlockTypes,
+                $topLevel,
                 $scaffoldTemplate,
             );
 
@@ -136,7 +143,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     /**
      * Validate all inputs and build the full scaffold plan (no writes).
      *
-     * @return array{name: string, handle: string, sortOrder: int, childBlockTypes: array<int, string>, attachments: array<int, array<string, mixed>>, template: array{path: string, content: string}|null}
+     * @return array{name: string, handle: string, sortOrder: int, topLevel: bool, childBlockTypes: array<int, string>, attachments: array<int, array<string, mixed>>, template: array{path: string, content: string}|null}
      * @throws ToolCallException
      */
     private function planBlockType(
@@ -146,6 +153,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         ?string $existingFields,
         ?string $newFields,
         ?string $childBlockTypes,
+        bool $topLevel,
         bool $scaffoldTemplate,
     ): array {
         $blockTypeHandle = $this->resolveBlockTypeHandle($handle, $name);
@@ -163,6 +171,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
             'name' => $name,
             'handle' => $blockTypeHandle,
             'sortOrder' => count($field->getBlockTypes()) + 1,
+            'topLevel' => $topLevel,
             'childBlockTypes' => $children,
             'attachments' => $attachments,
             'template' => $scaffoldTemplate
@@ -268,7 +277,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     /**
      * Decode and validate the newFields JSON payload.
      *
-     * @return array<int, array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool}>
+     * @return array<int, array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool, sources: mixed, maxRelations: int|null}>
      * @throws ToolCallException
      */
     private function decodeNewFields(?string $json): array {
@@ -287,7 +296,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     }
 
     /**
-     * @return array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool}
+     * @return array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool, sources: mixed, maxRelations: int|null}
      * @throws ToolCallException
      */
     private function normalizeNewFieldSpec(mixed $spec, int $index): array {
@@ -319,6 +328,8 @@ class NeoScaffoldTools implements ConditionalToolProvider {
             'type' => trim($type),
             'options' => $this->normalizeOptions($spec['options'] ?? null, $index, trim($type)),
             'required' => (bool) ($spec['required'] ?? false),
+            'sources' => $spec['sources'] ?? null,
+            'maxRelations' => isset($spec['maxRelations']) ? (int) $spec['maxRelations'] : null,
         ];
     }
 
@@ -396,7 +407,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      * Plan attachments for requested new fields, reusing an existing field
      * when one already matches (same handle, or same type + similar name).
      *
-     * @param array<int, array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool}> $specs
+     * @param array<int, array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool, sources: mixed, maxRelations: int|null}> $specs
      * @return array<int, array<string, mixed>>
      * @throws ToolCallException
      */
@@ -414,7 +425,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     }
 
     /**
-     * @param array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool} $spec
+     * @param array{name: string, handle: string|null, type: string, options: array<int, array<string, mixed>>, required: bool, sources: mixed, maxRelations: int|null} $spec
      * @param array<int, array{handle: string, name: string, class: string}> $summaries
      * @return array<string, mixed>
      * @throws ToolCallException
@@ -437,6 +448,8 @@ class NeoScaffoldTools implements ConditionalToolProvider {
                     'handle' => $specHandle,
                     'class' => $class,
                     'options' => $spec['options'],
+                    'sources' => $spec['sources'] ?? null,
+                    'maxRelations' => $spec['maxRelations'] ?? null,
                 ],
                 'match' => null,
             ];
@@ -593,7 +606,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     /**
      * Describe the planned block type for responses.
      *
-     * @param array{name: string, handle: string, sortOrder: int, childBlockTypes: array<int, string>} $plan
+     * @param array{name: string, handle: string, sortOrder: int, topLevel: bool, childBlockTypes: array<int, string>} $plan
      * @return array<string, mixed>
      */
     private function describeBlockType(NeoField $field, array $plan): array {
@@ -602,7 +615,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
             'handle' => $plan['handle'],
             'fieldHandle' => $field->handle,
             'sortOrder' => $plan['sortOrder'],
-            'topLevel' => true,
+            'topLevel' => $plan['topLevel'],
             'childBlockTypes' => $plan['childBlockTypes'],
         ];
     }
@@ -685,6 +698,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         $field->name = (string) $create['name'];
         $field->handle = (string) $create['handle'];
         $this->applyOptions($field, is_array($create['options'] ?? null) ? $create['options'] : []);
+        $this->applyRelationSettings($field, $create);
 
         if (!Craft::$app->getFields()->saveField($field)) {
             throw new ToolCallException(
@@ -693,6 +707,20 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         }
 
         return $field;
+    }
+
+    /**
+     * Apply relation-field settings (sources, maxRelations) when applicable.
+     *
+     * @param array<string, mixed> $create
+     */
+    private function applyRelationSettings(Field $field, array $create): void {
+        if (isset($create['sources']) && property_exists($field, 'sources')) {
+            $field->sources = $create['sources'];
+        }
+        if (isset($create['maxRelations']) && property_exists($field, 'maxRelations')) {
+            $field->maxRelations = (int) $create['maxRelations'];
+        }
     }
 
     /**
@@ -737,7 +765,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     /**
      * Build the (unsaved) Neo BlockType model.
      *
-     * @param array{name: string, handle: string, sortOrder: int, childBlockTypes: array<int, string>} $plan
+     * @param array{name: string, handle: string, sortOrder: int, topLevel: bool, childBlockTypes: array<int, string>} $plan
      */
     private function buildBlockType(NeoField $field, array $plan, FieldLayout $layout): BlockType {
         $blockType = new BlockType();
@@ -745,7 +773,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         $blockType->name = $plan['name'];
         $blockType->handle = $plan['handle'];
         $blockType->enabled = true;
-        $blockType->topLevel = true;
+        $blockType->topLevel = $plan['topLevel'];
         $blockType->sortOrder = $plan['sortOrder'];
 
         $this->applyChildBlocks($blockType, $plan['childBlockTypes']);

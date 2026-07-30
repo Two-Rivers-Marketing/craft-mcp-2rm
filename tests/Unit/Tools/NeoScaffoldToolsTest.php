@@ -50,11 +50,11 @@ describe('NeoScaffoldTools class structure', function () {
 });
 
 describe('NeoScaffoldTools method signatures', function () {
-    it('createBlockType requires name, with optional handle, fieldHandle, existingFields, newFields, childBlockTypes, scaffoldTemplate, dryRun and context', function () {
+    it('createBlockType requires name, with optional handle, fieldHandle, existingFields, newFields, childBlockTypes, topLevel, scaffoldTemplate, dryRun and context', function () {
         $reflection = new ReflectionMethod(NeoScaffoldTools::class, 'createBlockType');
         $parameters = $reflection->getParameters();
 
-        expect($parameters)->toHaveCount(9);
+        expect($parameters)->toHaveCount(10);
 
         expect($parameters[0]->getName())->toBe('name')
             ->and($parameters[0]->isOptional())->toBeFalse()
@@ -80,18 +80,23 @@ describe('NeoScaffoldTools method signatures', function () {
             ->and($parameters[5]->isOptional())->toBeTrue()
             ->and($parameters[5]->getType()?->allowsNull())->toBeTrue();
 
-        expect($parameters[6]->getName())->toBe('scaffoldTemplate')
+        expect($parameters[6]->getName())->toBe('topLevel')
             ->and($parameters[6]->isOptional())->toBeTrue()
             ->and($parameters[6]->getType()?->getName())->toBe('bool')
             ->and($parameters[6]->getDefaultValue())->toBeTrue();
 
-        expect($parameters[7]->getName())->toBe('dryRun')
+        expect($parameters[7]->getName())->toBe('scaffoldTemplate')
             ->and($parameters[7]->isOptional())->toBeTrue()
             ->and($parameters[7]->getType()?->getName())->toBe('bool')
-            ->and($parameters[7]->getDefaultValue())->toBeFalse();
+            ->and($parameters[7]->getDefaultValue())->toBeTrue();
 
-        expect($parameters[8]->getName())->toBe('context')
-            ->and($parameters[8]->isOptional())->toBeTrue();
+        expect($parameters[8]->getName())->toBe('dryRun')
+            ->and($parameters[8]->isOptional())->toBeTrue()
+            ->and($parameters[8]->getType()?->getName())->toBe('bool')
+            ->and($parameters[8]->getDefaultValue())->toBeFalse();
+
+        expect($parameters[9]->getName())->toBe('context')
+            ->and($parameters[9]->isOptional())->toBeTrue();
     });
 
     it('createBlockType returns array', function () {
