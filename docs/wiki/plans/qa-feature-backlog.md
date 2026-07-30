@@ -27,12 +27,24 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 | `create_block_type` stub hardcodes `columnItem` children loop | low | done (#24) | Stub now honors `childBlockTypes`: columnItem children keep the columnItem include; other types dispatch via `columnItemPaths` (single type by name, mixed via `item.type.handle`). |
 | Item 4: `upload_asset` (GCS volume) | — | **done** | Verification-only, no defects. See [../architecture/asset-integration.md](../architecture/asset-integration.md). |
 | Item 5: childBlocks / positioning edge cases | — | **done** (#22) | Live-QA'd on a scratch entry: integer index, `before:`/`after:` (valid + invalid sibling), `parentBlockId` nesting, legal/illegal childBlocks — all correct, nested-set integrity held. Found + fixed one defect: Neo exposes a **leaf** type's `childBlocks` as `null`, which `NeoBlockTree` treated as allow-any → illegal nesting saved. Now `null` = no children. See [../architecture/neo-integration.md](../architecture/neo-integration.md). Live re-verify of the leaf-rejection pending SIGHUP. |
+| `template.exists` wrong for child types + no multi-root awareness | high | open | `get_block_type` reports `exists: false` for types that render fine: wrong path for child types (`_includes/` not `body_blocks/`), no awareness of plugin template roots (e.g. `site-toolkit`). `describe_content_builder` reports `exists: false` for every block type on a stock install. See [../architecture/neo-integration.md](../architecture/neo-integration.md#template-resolution-gotcha). Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| `create_block_type` missing `topLevel`/`parentBlockTypes` params | med | open | No way to declare child-only types or assign parents in one call — requires `tinker` post-creation. `scaffoldTemplate` also hardcodes `body_blocks/` path. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| `newFields` cannot create relation fields | med | open | Supports `plainText`/`richText`/`dropdown`/`lightswitch`/`asset` — missing `entries`/`categories`/`users` with `sources`/`maxRelations`. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
 
 ## Assets
 
 | Item | P | Status | Notes |
 | --- | --- | --- | --- |
 | `upload_asset` on GCS volume | — | **done** | Root upload, new nested subfolder creation (`qa/2026`), and filename-collision de-dup all verified live with no adapter-specific defects. See [../architecture/asset-integration.md](../architecture/asset-integration.md). |
+
+## Entry / content tools
+
+| Item | P | Status | Notes |
+| --- | --- | --- | --- |
+| Response verbosity — full SEOmatic MetaBundle in every entry response | high | open | Every `create_entry`/`update_entry` returns hundreds of mostly-empty SEOmatic lines. For a 439-entry import this was the dominant cost. Suggested: compact summary by default, `verbose: true` for full dump. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| No Matrix / nested-entry field writes | high | open | Matrix fields in `fields` accept only scalars — writing Matrix content requires hand-rolled `tinker`. Largest time sink of the KCMA session. Neo's `children` shape already models the right pattern. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| No `delete_entry` tool | med | open | `delete_form`/`delete_node`/`delete_neo_block`/`delete_submission` exist but no entry delete. A tool could enforce guardrails (refuse children, warn non-empty channels, soft-delete default). Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| Date fields shift silently on write | high | open | `update_entry` with `"2026-09-14 09:00:00"` reads back 5 hours shifted — UTC↔local confusion, reported as success. Suggested: ISO-8601 with explicit offset, or document the assumed zone. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
 
 ## Cross-cutting / infra
 
@@ -42,9 +54,15 @@ Legend: **P** = priority (relative), status = `open` / `scoped` / `in-progress` 
 | Reload ergonomics | low | open | Code changes need a manual SIGHUP restart of the long-running server; `reload_mcp` only detects new plugins. A smoother dev-reload would speed QA. |
 | Long-running server holds process-static caches | med | **done** (#26) | Audited every schema-/content-mutating tool. One new hazard found + fixed: `create_form` left Freeform `FormsService`'s private memo cache stale (get_form-by-handle / list_forms served stale until SIGHUP) → `FreeformScaffoldTools::flushFormCache()`. Everything else safe or already-busted (`flushBlockTypeCaches`, #23's post-save re-read). Audit table in [../architecture/neo-integration.md](../architecture/neo-integration.md). Live re-verify of the create_form freshness pending SIGHUP. |
 | mbd snapback jobs failing (not our plugin) | — | note | `modules\snapback\jobs\SnapbackJob` fails on `fopen(...system.png): No such file` — mbd's own snapback module can't write screenshots. Pre-existing; unrelated to craft-mcp. Flagged for mbd, not this repo. |
+| Inconsistent identifier params across tools | low | open | `create_neo_block` takes `entryId`; `update_entry`/`get_entry` take `id`. `create_entry` requires `type`. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| `tinker` security error doesn't name the blocked pattern | low | open | Error names the rule family but not the matched construct (e.g. `copy()`). Naming it + pointing at the right tool (`upload_asset`) would save a guess. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| Composer `no-api` needed for public repo consumers | low | open | Without `"no-api": true` on the VCS repo entry, `composer update` fails with GitHub auth error on a public repo. Worth documenting in install docs. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
+| Tag releases closer to merges | low | open | HEAD sat 59 commits ahead of `v1.3.0`; consumers on `^1.3` silently lacked HTTP transport + CRUD tools. Tagged `v1.4.0` at `304662a` to fix. Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md). |
 
 ## Cross-references
 
 - [overview/project.md](../overview/project.md) — QA priority order
 - [create-form-tool.md](create-form-tool.md)
 - [architecture/freeform-integration.md](../architecture/freeform-integration.md)
+- [architecture/neo-integration.md](../architecture/neo-integration.md) — template resolution gotcha
+- Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md) — 2026-07-28, v1.4.0 on kcma.ddev.site

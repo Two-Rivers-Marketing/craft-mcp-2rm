@@ -82,8 +82,25 @@ a broad `getCache()->flush()` — for the Neo memo, `flush()` + `refreshFields()
 **not** fix the stale read; only clearing the static did. The Freeform fix follows the
 same shape (clear the service's in-memory Memo, not Craft's cache).
 
+## Template resolution gotcha (get_block_type, describe_content_builder)
+
+`get_block_type` reports `template.exists` by checking a single hardcoded path (`body_blocks/<handle>.twig`). This is wrong in two ways, both surfaced during a real KCMA build (2026-07-28, v1.4.0):
+
+1. **Child block types use a different path.** Types with `topLevel: false` (e.g. `entryCard` under `columnItem`) render from `_includes/columnItems/<handle>.twig`, not `body_blocks/`. The reported path does not exist and never would for a child type.
+
+2. **Craft template roots are invisible.** Plugins like `site-toolkit` register additional template roots via `Event::on(View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, ...)`. A block type with no local template still renders from the plugin's copy via Craft's two-element fallback array. `exists: false` conflates "no template anywhere" with "renders fine from another root."
+
+`describe_content_builder` inherits this — on a stock `site-toolkit` install, it reports `exists: false` for every block type, reading as "nothing renders" when 11 of 13 types do.
+
+**Impact:** A prior KCMA session treated `exists: false` as evidence that types would not render and drew the wrong conclusion three times; the project handoff carries a dedicated warning.
+
+**Fix path:** Resolve through Craft's template loader (`Craft::$app->getView()->resolveTemplate()`) across all registered roots, pick path by nesting level, report which root serves it (`servedBy: "site-toolkit"`). Verify against kcma.ddev.site.
+
+Source: [KCMA field report](../raw/2026-07-28-kcma-build-tool-findings.md).
+
 ## Cross-references
 
 - [freeform-integration.md](freeform-integration.md) — sibling integration gotchas (same duck-typed-against-absent-plugin origin); create_form cache fix detailed there
 - [../plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md)
 - [../overview/project.md](../overview/project.md) — QA priority order
+- [../raw/2026-07-28-kcma-build-tool-findings.md](../raw/2026-07-28-kcma-build-tool-findings.md) — source field report
