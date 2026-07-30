@@ -6,6 +6,7 @@ namespace twoRivers\craft\Mcp\tools;
 
 use benf\neo\Plugin as Neo;
 use Craft;
+use craft\events\RegisterTemplateRootsEvent;
 use craft\web\View;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
@@ -16,6 +17,7 @@ use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\support\NeoSerializer;
 use twoRivers\craft\Mcp\support\ResolvesNeoBuilderField;
 use twoRivers\craft\Mcp\support\SafeExecution;
+use yii\base\Event;
 
 /**
  * Neo content-builder schema tools for Craft CMS.
@@ -163,6 +165,7 @@ class NeoSchemaTools implements ConditionalToolProvider {
         $siteRoot = Craft::$app->getPath()->getSiteTemplatesPath();
         $resolvedPath = null;
         $resolvedAbsolute = null;
+        $servedBy = null;
 
         foreach ($candidates as $candidate) {
             $absolute = $view->resolveTemplate($candidate, View::TEMPLATE_MODE_SITE);
@@ -171,12 +174,29 @@ class NeoSchemaTools implements ConditionalToolProvider {
             }
             $resolvedPath = $candidate;
             $resolvedAbsolute = $absolute;
+            $servedBy = str_starts_with($absolute, $siteRoot) ? 'project' : 'plugin';
             break;
         }
 
-        $servedBy = null;
-        if ($resolvedAbsolute !== null) {
-            $servedBy = str_starts_with($resolvedAbsolute, $siteRoot) ? 'project' : 'plugin';
+        // ponytail: Craft's resolveTemplate only finds plugin-root templates
+        // when the path is prefixed with the root key (e.g. "site-toolkit/body_blocks/foo.twig").
+        // Fire the event to discover root keys, build prefixed candidates, then try each.
+        if ($resolvedAbsolute === null) {
+            $event = new RegisterTemplateRootsEvent();
+            Event::trigger(View::class, View::EVENT_REGISTER_SITE_TEMPLATE_ROOTS, $event);
+
+            $prefixed = $this->prefixedTemplateCandidates($candidates, array_keys($event->roots));
+
+            foreach ($prefixed as [$rootKey, $candidate, $prefixedPath]) {
+                $absolute = $view->resolveTemplate($prefixedPath, View::TEMPLATE_MODE_SITE);
+                if ($absolute === false) {
+                    continue;
+                }
+                $resolvedPath = $candidate;
+                $resolvedAbsolute = $absolute;
+                $servedBy = $rootKey;
+                break;
+            }
         }
 
         return NeoSerializer::blockType(
@@ -185,5 +205,28 @@ class NeoSchemaTools implements ConditionalToolProvider {
             $resolvedPath ?? $candidates[0],
             $servedBy,
         );
+    }
+
+    /**
+     * Build a flat list of [rootKey, candidate, prefixedPath] tuples for
+     * resolveTemplate, avoiding nested loops (phpstan: NoNestedLoops).
+     *
+     * @param list<string> $candidates
+     * @param list<string> $rootKeys
+     * @return list<array{string, string, string}>
+     */
+    private function prefixedTemplateCandidates(array $candidates, array $rootKeys): array {
+        $result = [];
+        foreach ($rootKeys as $rootKey) {
+            $result = [
+                ...$result,
+                ...array_map(
+                    static fn (string $c): array => [$rootKey, $c, "{$rootKey}/{$c}"],
+                    $candidates,
+                ),
+            ];
+        }
+
+        return $result;
     }
 }
