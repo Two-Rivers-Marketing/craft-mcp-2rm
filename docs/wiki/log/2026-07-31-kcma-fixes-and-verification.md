@@ -27,7 +27,7 @@ timestamp: 2026-07-31
    - Date format: `2026-07-28T12:14:00-05:00` confirmed.
    - `create_block_type`: `topLevel` param visible in schema.
    - `newFields`: `entries`/`users` in tool description.
-   - Entry write tools (`create_entry`, `update_entry`, `delete_entry`, `tinker`) not exposed in HTTP transport tool list — pre-existing issue, not caused by these changes.
+   - Entry write tools (`create_entry`, `update_entry`, `delete_entry`, `tinker`) not exposed in HTTP transport tool list — pre-existing issue, not caused by these changes. **[WITHDRAWN 2026-08-03 — this claim was wrong. `tools/list` is paginated at 50; the tools were on page 2 all along. See [2026-08-03-http-transport-non-bug.md](2026-08-03-http-transport-non-bug.md).]**
 
 ## Durable knowledge
 
@@ -38,7 +38,7 @@ timestamp: 2026-07-31
 ## Still pending
 
 - **4 backlog items open:** Matrix/nested-entry writes (biggest gap), inconsistent identifier params, Composer `no-api` docs, release tagging cadence.
-- **Entry write tools not in HTTP transport tool list** — `create_entry`, `update_entry`, `delete_entry`, `tinker` absent. Other dangerous tools (`create_block_type`, `delete_form`, etc.) show fine. Pre-existing; needs investigation.
+- ~~**Entry write tools not in HTTP transport tool list** — `create_entry`, `update_entry`, `delete_entry`, `tinker` absent. Other dangerous tools (`create_block_type`, `delete_form`, etc.) show fine. Pre-existing; needs investigation.~~ **WITHDRAWN 2026-08-03 — no such defect. `tools/list` is paginated at 50 (SDK default) and all 75 tools are advertised across 2 pages; the original verification did not follow `nextCursor`. See [2026-08-03-http-transport-non-bug.md](2026-08-03-http-transport-non-bug.md).**
 - **`parentBlockTypes` param** deferred — requires modifying+saving other block types.
 - **All fixes pending SIGHUP on mbd** for that install's verification.
 
