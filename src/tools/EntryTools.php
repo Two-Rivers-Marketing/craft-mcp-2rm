@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace twoRivers\craft\Mcp\tools;
 
 use Craft;
+use craft\behaviors\DraftBehavior;
 use craft\elements\Entry;
 use craft\elements\User;
+use craft\helpers\ElementHelper;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Server\RequestContext;
@@ -233,6 +235,143 @@ class EntryTools {
     }
 
     /**
+     * Create a draft of an existing entry.
+     */
+    #[McpTool(
+        name: 'create_draft',
+        description: 'Create a draft of an EXISTING entry so edits can be staged without changing the live entry. '
+            . 'Requires entryId of an entry that already exists — this tool cannot create a brand-new entry as a draft; '
+            . 'call create_entry first, then create_draft with the returned id. '
+            . 'Optionally set the draft name, draft notes, a new title, and custom field values as JSON. '
+            . 'Returns the draft including its draftId — pass that draftId (not the entry id) to publish_draft.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
+    public function createDraft(
+        int $entryId,
+        ?string $name = null,
+        ?string $notes = null,
+        ?string $title = null,
+        ?string $fields = null,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($entryId, $name, $notes, $title, $fields): array {
+            $entry = Entry::find()->id($entryId)->status(null)->one();
+
+            if ($entry === null) {
+                throw new ToolCallException("Entry with ID {$entryId} not found");
+            }
+
+            if ($entry->getIsDraft() || $entry->getIsRevision()) {
+                throw new ToolCallException("Entry with ID {$entryId} is itself a draft or revision; drafts can only be created from a canonical entry");
+            }
+
+            $fieldValues = $this->parseFieldsJson($fields);
+            if ($fieldValues === false) {
+                throw new ToolCallException('Invalid JSON in fields parameter');
+            }
+
+            $draft = Craft::$app->getDrafts()->createDraft($entry, $this->getAuthorId(), $name, $notes);
+
+            if ($title !== null) {
+                $draft->title = $title;
+            }
+            if ($fieldValues !== null) {
+                $draft->setFieldValues($fieldValues);
+            }
+
+            $hasEdits = $title !== null || $fieldValues !== null;
+            if ($hasEdits && !Craft::$app->getElements()->saveElement($draft)) {
+                throw new ToolCallException('Failed to save draft: ' . json_encode($draft->getErrors()));
+            }
+
+            $writtenHandles = $fieldValues !== null ? array_keys($fieldValues) : null;
+
+            return Response::success(['draft' => $this->serializeDraft($draft, $writtenHandles)]);
+        });
+    }
+
+    /**
+     * Apply a draft to its canonical entry.
+     */
+    #[McpTool(
+        name: 'publish_draft',
+        description: 'Apply a draft to its canonical entry and delete the draft. '
+            . 'Requires draftId — the draft id returned by create_draft or list_drafts, NOT the entry id. '
+            . 'Pass dryRun: true to preview the draft that would be published without applying it.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
+    public function publishDraft(
+        int $draftId,
+        bool $dryRun = false,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($draftId, $dryRun): array {
+            $draft = $this->findDraft($draftId);
+
+            if ($draft === null) {
+                throw new ToolCallException("Draft with ID {$draftId} not found");
+            }
+
+            if ($dryRun) {
+                return Response::success(['dryRun' => true, 'draft' => $this->serializeDraft($draft)]);
+            }
+
+            $canonical = Craft::$app->getDrafts()->applyDraft($draft);
+
+            return Response::success([
+                'published' => true,
+                'draftId' => $draftId,
+                'entry' => $this->serializeEntry($canonical),
+            ]);
+        });
+    }
+
+    /**
+     * List drafts, optionally scoped to one canonical entry.
+     */
+    #[McpTool(
+        name: 'list_drafts',
+        description: 'List entry drafts, most recently updated first. '
+            . 'Pass entryId to list only drafts of that canonical entry, or omit it to list drafts across all entries. '
+            . 'Includes provisional (control-panel auto-save) drafts. Each result carries a draftId for publish_draft.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT)]
+    public function listDrafts(
+        ?int $entryId = null,
+        int $limit = 20,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($entryId, $limit): array {
+            $query = Entry::find()
+                ->drafts()
+                ->provisionalDrafts(null)
+                ->status(null)
+                ->orderBy(['dateUpdated' => SORT_DESC])
+                ->limit($limit);
+
+            if ($entryId !== null) {
+                $query->draftOf($entryId);
+            }
+
+            $results = array_map($this->serializeDraft(...), $query->all());
+
+            return Response::list('drafts', $results, ['total' => (int) $query->count()]);
+        });
+    }
+
+    /**
+     * Find a draft entry by its draft ID, including provisional drafts.
+     */
+    private function findDraft(int $draftId): ?Entry {
+        return Entry::find()
+            ->draftId($draftId)
+            ->drafts()
+            ->provisionalDrafts(null)
+            ->status(null)
+            ->one();
+    }
+
+    /**
      * Apply non-null filters to a query.
      */
     private function applyFilters(mixed $query, array $filters): void {
@@ -312,6 +451,31 @@ class EntryTools {
         }
 
         return $data;
+    }
+
+    /**
+     * Serialize a draft entry: the entry data plus its draft metadata.
+     *
+     * @param list<string>|null $onlyFields When set, only these field handles are serialized.
+     */
+    private function serializeDraft(Entry $draft, ?array $onlyFields = null): array {
+        $meta = [
+            'draftId' => $draft->draftId,
+            'canonicalId' => $draft->getCanonicalId(),
+            'draftName' => null,
+            'draftNotes' => null,
+            'isProvisionalDraft' => $draft->isProvisionalDraft,
+            'isUnpublishedDraft' => $draft->getIsUnpublishedDraft(),
+            'isOutdated' => ElementHelper::isOutdated($draft),
+        ];
+
+        $behavior = $draft->getBehavior('draft');
+        if ($behavior instanceof DraftBehavior) {
+            $meta['draftName'] = $behavior->draftName;
+            $meta['draftNotes'] = $behavior->draftNotes;
+        }
+
+        return [...$this->serializeEntry($draft, $onlyFields), ...$meta];
     }
 
     /**

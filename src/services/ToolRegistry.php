@@ -25,8 +25,11 @@ use twoRivers\craft\Mcp\tools\NavigationTools;
 use twoRivers\craft\Mcp\tools\NeoContentTools;
 use twoRivers\craft\Mcp\tools\NeoScaffoldTools;
 use twoRivers\craft\Mcp\tools\NeoSchemaTools;
+use twoRivers\craft\Mcp\tools\QueueTools;
+use twoRivers\craft\Mcp\tools\SeomaticTools;
 use twoRivers\craft\Mcp\tools\SiteTools;
 use twoRivers\craft\Mcp\tools\SystemTools;
+use twoRivers\craft\Mcp\tools\TemplateTools;
 use twoRivers\craft\Mcp\tools\TinkerTools;
 use twoRivers\craft\Mcp\tools\UserTools;
 
@@ -53,8 +56,10 @@ final class ToolRegistry {
         GlobalSetTools::class,
         GraphqlTools::class,
         McpTools::class,
+        QueueTools::class,
         SiteTools::class,
         SystemTools::class,
+        TemplateTools::class,
         TinkerTools::class,
         UserTools::class,
     ];
@@ -347,6 +352,11 @@ final class ToolRegistry {
         // Add Navigation tools (nav/node CRUD) if verbb/navigation is installed
         if (NavigationTools::isAvailable()) {
             $tools[] = NavigationTools::class;
+        }
+
+        // Add SEOmatic tools (compact per-entry SEO read/write) if SEOmatic is installed
+        if (SeomaticTools::isAvailable()) {
+            $tools[] = SeomaticTools::class;
         }
 
         // Use addCoreTools which bypasses source validation

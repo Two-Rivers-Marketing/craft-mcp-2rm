@@ -38,6 +38,29 @@ class GlobalSetTools {
     }
 
     /**
+     * Get a single global set by handle.
+     */
+    #[McpTool(
+        name: 'get_global_set',
+        description: 'Get a single global set by handle, with its custom field values. Use this instead of list_globals when you already know the handle.',
+    )]
+    #[McpToolMeta(category: ToolCategory::CONTENT)]
+    public function getGlobalSet(
+        string $handle,
+        ?RequestContext $context = null,
+    ): array {
+        return SafeExecution::run(function () use ($handle): array {
+            $globalSet = Craft::$app->getGlobals()->getSetByHandle($handle);
+
+            if ($globalSet === null) {
+                throw new ToolCallException("Global set with handle '{$handle}' not found");
+            }
+
+            return Response::found('global', $this->serializeGlobalSet($globalSet));
+        });
+    }
+
+    /**
      * Update the field values of a global set.
      */
     #[McpTool(
