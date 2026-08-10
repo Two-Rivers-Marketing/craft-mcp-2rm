@@ -255,14 +255,23 @@ class EntryTools {
         ?RequestContext $context = null,
     ): array {
         return SafeExecution::run(function () use ($entryId, $name, $notes, $title, $fields): array {
-            $entry = Entry::find()->id($entryId)->status(null)->one();
+            // drafts(null) so a draft/revision element is actually found here.
+            // Without it Entry::find() silently excludes drafts, the guard below
+            // is unreachable, and passing a draft's id reports the misleading
+            // "not found" instead of naming the real problem.
+            $entry = Entry::find()
+                ->id($entryId)
+                ->drafts(null)
+                ->provisionalDrafts(null)
+                ->status(null)
+                ->one();
 
             if ($entry === null) {
                 throw new ToolCallException("Entry with ID {$entryId} not found");
             }
 
             if ($entry->getIsDraft() || $entry->getIsRevision()) {
-                throw new ToolCallException("Entry with ID {$entryId} is itself a draft or revision; drafts can only be created from a canonical entry");
+                throw new ToolCallException("Entry with ID {$entryId} is itself a draft or revision; drafts can only be created from a canonical entry. Pass the canonical entry's id (its canonicalId).");
             }
 
             $fieldValues = $this->parseFieldsJson($fields);
@@ -333,15 +342,18 @@ class EntryTools {
         name: 'list_drafts',
         description: 'List entry drafts, most recently updated first. '
             . 'Pass entryId to list only drafts of that canonical entry, or omit it to list drafts across all entries. '
-            . 'Includes provisional (control-panel auto-save) drafts. Each result carries a draftId for publish_draft.',
+            . 'Includes provisional (control-panel auto-save) drafts. Each result carries a draftId for publish_draft. '
+            . 'Custom field values are omitted by default because a single draft\'s fields can run to several KB; '
+            . 'pass includeFields: true for the full field values, or call get_entry on a specific draft.',
     )]
     #[McpToolMeta(category: ToolCategory::CONTENT)]
     public function listDrafts(
         ?int $entryId = null,
         int $limit = 20,
+        bool $includeFields = false,
         ?RequestContext $context = null,
     ): array {
-        return SafeExecution::run(function () use ($entryId, $limit): array {
+        return SafeExecution::run(function () use ($entryId, $limit, $includeFields): array {
             $query = Entry::find()
                 ->drafts()
                 ->provisionalDrafts(null)
@@ -353,7 +365,14 @@ class EntryTools {
                 $query->draftOf($entryId);
             }
 
-            $results = array_map($this->serializeDraft(...), $query->all());
+            // Field values are opt-in: measured live, one KCMA draft serialized
+            // to 6.6KB of which 5.4KB was a single SEOmatic MetaBundle field, so
+            // an unfiltered list is dominated by data the caller rarely wants.
+            $onlyFields = $includeFields ? null : [];
+            $results = array_map(
+                fn (Entry $draft): array => $this->serializeDraft($draft, $onlyFields),
+                $query->all(),
+            );
 
             return Response::list('drafts', $results, ['total' => (int) $query->count()]);
         });

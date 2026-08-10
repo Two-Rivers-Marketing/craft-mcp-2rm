@@ -125,10 +125,10 @@ describe('EntryTools list_drafts', function () {
             ->and($meta->category)->toBe(ToolCategory::CONTENT);
     });
 
-    it('takes an optional entryId, a limit defaulting to 20 and an optional context', function () {
+    it('takes an optional entryId, a limit defaulting to 20, includeFields and an optional context', function () {
         $params = (new ReflectionMethod(EntryTools::class, 'listDrafts'))->getParameters();
 
-        expect($params)->toHaveCount(3);
+        expect($params)->toHaveCount(4);
 
         expect($params[0]->getName())->toBe('entryId')
             ->and($params[0]->isOptional())->toBeTrue()
@@ -139,8 +139,29 @@ describe('EntryTools list_drafts', function () {
             ->and($params[1]->getType()?->getName())->toBe('int')
             ->and($params[1]->getDefaultValue())->toBe(20);
 
-        expect($params[2]->getName())->toBe('context')
-            ->and($params[2]->isOptional())->toBeTrue();
+        expect($params[2]->getName())->toBe('includeFields')
+            ->and($params[2]->isOptional())->toBeTrue()
+            ->and($params[2]->getType()?->getName())->toBe('bool')
+            ->and($params[2]->getDefaultValue())->toBeFalse();
+
+        expect($params[3]->getName())->toBe('context')
+            ->and($params[3]->isOptional())->toBeTrue();
+    });
+
+    // Live measurement on KCMA: one draft serialized to 6.6KB, 5.4KB of which
+    // was a single SEOmatic MetaBundle field. Field values must stay opt-in so
+    // a 20-draft listing does not cost ~130KB of context.
+    it('omits custom field values unless includeFields is opted into', function () {
+        $params = (new ReflectionMethod(EntryTools::class, 'listDrafts'))->getParameters();
+
+        $named = [];
+        foreach ($params as $param) {
+            $named[$param->getName()] = $param;
+        }
+
+        expect($named)->toHaveKey('includeFields');
+        expect($named['includeFields']->getType()?->getName())->toBe('bool')
+            ->and($named['includeFields']->getDefaultValue())->toBeFalse();
     });
 
     it('returns array', function () {
