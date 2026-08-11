@@ -1,5 +1,4 @@
 /vendor/
-composer.lock
 DEVELOPMENT.md
 .phpunit.cache/
 .phpunit.result.cache
