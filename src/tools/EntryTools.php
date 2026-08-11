@@ -29,7 +29,11 @@ class EntryTools {
      */
     #[McpTool(
         name: 'list_entries',
-        description: 'List entries from Craft CMS. Filter by section, type, status, limit, offset. Returns entry data including custom fields.',
+        description: 'List entries from Craft CMS. Filter by section, type, status, limit, offset. '
+            . 'Returns entry metadata (id, title, slug, status, section/type, dates, url). '
+            . 'Custom field values are OMITTED by default because they dominate the response — '
+            . 'pass includeFields: true for the full field values on every entry, or call get_entry '
+            . 'for a single entry\'s fields. Prefer get_entry over includeFields when you only need one.',
     )]
     #[McpToolMeta(category: ToolCategory::CONTENT)]
     public function listEntries(
@@ -38,9 +42,10 @@ class EntryTools {
         ?string $status = null,
         int $limit = 20,
         int $offset = 0,
+        bool $includeFields = false,
         ?RequestContext $context = null,
     ): array {
-        return SafeExecution::run(function () use ($section, $type, $status, $limit, $offset): array {
+        return SafeExecution::run(function () use ($section, $type, $status, $limit, $offset, $includeFields): array {
             $query = Entry::find()
                 ->limit($limit)
                 ->offset($offset);
@@ -51,8 +56,15 @@ class EntryTools {
                 'status' => $status ?? null, // null = all statuses
             ]);
 
-            $entries = $query->all();
-            $results = array_map($this->serializeEntry(...), $entries);
+            // Field values are opt-in. Measured live on KCMA before this change:
+            // list_entries(limit: 25) returned 127KB, 79% of it a single SEOmatic
+            // MetaBundle field per entry. The cost multiplies by N, so an
+            // unfiltered listing is the most expensive call in the toolset.
+            $onlyFields = $includeFields ? null : [];
+            $results = array_map(
+                fn (Entry $entry): array => $this->serializeEntry($entry, $onlyFields),
+                $query->all(),
+            );
 
             return Response::paginated('entries', $results, (int) $query->count(), $limit, $offset);
         });

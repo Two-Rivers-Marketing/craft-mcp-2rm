@@ -169,6 +169,46 @@ describe('EntryTools list_drafts', function () {
     });
 });
 
+describe('EntryTools list response weight', function () {
+    // Measured live on KCMA before the opt-in change: list_entries(limit: 25)
+    // returned 127KB, 79% of it one SEOmatic MetaBundle field per entry. Both
+    // list tools must keep field values opt-in — the cost multiplies by N, and
+    // a caller that wants one entry's fields should use get_entry.
+    it('keeps field values opt-in on both list tools', function () {
+        foreach (['listEntries', 'listDrafts'] as $method) {
+            $named = [];
+            foreach ((new ReflectionMethod(EntryTools::class, $method))->getParameters() as $param) {
+                $named[$param->getName()] = $param;
+            }
+
+            expect($named)->toHaveKey('includeFields');
+            expect($named['includeFields']->getType()?->getName())
+                ->toBe('bool', "{$method}: includeFields must be bool");
+            expect($named['includeFields']->getDefaultValue())
+                ->toBeFalse("{$method}: includeFields must default to false");
+        }
+    });
+
+    it('says so in the list_entries description, so a caller knows to opt in', function () {
+        $tool = (new ReflectionMethod(EntryTools::class, 'listEntries'))
+            ->getAttributes(McpTool::class)[0]->newInstance();
+
+        expect($tool->description)->toContain('includeFields')
+            ->and($tool->description)->toContain('get_entry');
+    });
+
+    it('preserves the existing list_entries filter and paging parameters', function () {
+        // includeFields was appended, not inserted — positional callers must not shift.
+        $params = array_map(
+            fn (ReflectionParameter $p): string => $p->getName(),
+            (new ReflectionMethod(EntryTools::class, 'listEntries'))->getParameters(),
+        );
+
+        expect(array_slice($params, 0, 5))->toBe(['section', 'type', 'status', 'limit', 'offset']);
+        expect($params[5])->toBe('includeFields');
+    });
+});
+
 describe('EntryTools tool count', function () {
     it('has exactly 8 public methods with the McpTool attribute', function () {
         $methods = (new ReflectionClass(EntryTools::class))->getMethods(ReflectionMethod::IS_PUBLIC);
