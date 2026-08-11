@@ -373,13 +373,20 @@ Execute PHP code within your Craft application context. This is a powerful tool 
 
 **Security restrictions:**
 
-For safety, certain operations are blocked:
+**Requires `devMode`.** With Craft's `devMode` off, `tinker` refuses to execute and returns a
+`SecurityError` — arbitrary PHP execution is a development-only affordance. See
+[SECURITY.md](../../SECURITY.md) for the trust boundary.
+
+Beyond that, certain operations are blocked:
 
 - **Shell commands**: `exec`, `shell_exec`, `system`, `passthru`, `proc_open`
 - **File writes**: `file_put_contents`, `fwrite`, `fputs`
 - **Dangerous functions**: `eval` (to prevent nested evaluation)
 
 The code is parsed using PsySH's CodeCleaner before execution.
+
+The blocklist is a foot-gun guard, not a sandbox — it can be bypassed (`call_user_func`, variable
+functions). Anyone who can call `tinker` can run arbitrary PHP as the Craft user.
 
 **Examples:**
 

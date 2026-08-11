@@ -174,7 +174,7 @@ The following tools are classified as "dangerous" because they can modify data o
 
 | Tool | Risk Level | Description |
 |------|------------|-------------|
-| `tinker` | High | Executes arbitrary PHP code in your application context |
+| `tinker` | High | Executes arbitrary PHP code in your application context. **Additionally requires `devMode`** — refuses to run with it off |
 | `run_query` | Medium | Executes SQL queries (restricted to SELECT, but still exposes data) |
 | `create_entry` | Medium | Creates new entries in your content |
 | `update_entry` | Medium | Modifies existing entry content |
@@ -228,6 +228,8 @@ After changing the log level, restart the MCP server (send SIGHUP to the process
 ### Common Issues
 
 **"Tool execution failed" with no detail**: This typically means an unexpected error occurred outside the tool's error handling. Check `storage/logs/mcp-server.log` for the full exception. Enable `'logLevel' => 'debug'` for additional context.
+
+**Tinker returns a `SecurityError` about devMode**: `tinker` only runs when Craft's `devMode` is on. This is deliberate and not configurable — see [SECURITY.md](../SECURITY.md).
 
 **Tinker returns no output**: Verify that `enableDangerousTools` is `true` and that `tinker` is not in the `disabledTools` array. Check with the `list_mcp_tools` tool to confirm tinker is listed as enabled.
 

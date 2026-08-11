@@ -31,8 +31,12 @@ use twoRivers\craft\Mcp\support\SafeExecution;
  *
  * SECURITY WARNING: This tool uses eval() with a blocklist approach.
  * The blocklist can be bypassed (e.g., call_user_func, variable functions).
- * Only enable in trusted environments. Consider this a convenience tool
- * for development, NOT a secure sandbox.
+ * It is a convenience tool for development, NOT a secure sandbox.
+ *
+ * Arbitrary execution is therefore gated on Craft devMode — the same boundary
+ * the HTTP transport and reload_mcp use. With devMode off the tool refuses
+ * before reaching eval(). See SECURITY.md for the trust boundary and for
+ * disabling it outright (`disabledTools`).
  *
  * @author Max van Essen <support@stimmt.digital>
  */
@@ -74,11 +78,11 @@ class TinkerTools {
      * Execute arbitrary PHP code within Craft's application context.
      *
      * WARNING: Uses blocklist-based security which can be bypassed.
-     * Only use in trusted development environments.
+     * Requires Craft devMode; refuses to run otherwise.
      */
     #[McpTool(
         name: 'tinker',
-        description: 'Execute PHP code within Craft CMS context. WARNING: Basic blocklist security only - not a secure sandbox. For development use only. Has access to Craft::$app and all services.',
+        description: 'Execute PHP code within Craft CMS context. Requires devMode. WARNING: Basic blocklist security only - not a secure sandbox. For development use only. Has access to Craft::$app and all services.',
     )]
     #[McpToolMeta(category: ToolCategory::DEBUGGING, dangerous: true)]
     public function tinker(
@@ -94,6 +98,19 @@ class TinkerTools {
             $outputMode = OutputMode::tryFrom($output) ?? OutputMode::DUMP;
 
             $this->logger->debug('Tinker executing', ['code' => mb_substr($code, 0, 200)]);
+
+            // Arbitrary PHP execution is a dev-only affordance. devMode is the
+            // gate the rest of the plugin already uses for dev-only surfaces.
+            // ponytail: no separate setting — add `enableTinker` only if a
+            // non-devMode install ever genuinely needs it.
+            if (!Craft::$app->getConfig()->getGeneral()->devMode) {
+                $this->logger->warning('Tinker refused: devMode is off');
+
+                return $this->response(
+                    $code,
+                    $this->formatError('SecurityError', 'tinker executes arbitrary PHP and only runs when Craft devMode is on. Use a dedicated tool, or enable devMode in a development environment.'),
+                );
+            }
 
             foreach (self::BLOCKED_PATTERNS as $pattern) {
                 if (!preg_match($pattern, $code, $matches)) {

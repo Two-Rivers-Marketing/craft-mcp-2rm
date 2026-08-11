@@ -309,6 +309,7 @@ See the [Extending Guide](docs/extending.md) for implementation details, code ex
 - **[Prompts](docs/prompts.md)** - Pre-built analysis prompts for content health, audits, and schema exploration
 - **[Resources](docs/resources.md)** - Read-only URI-based access to schema, config, and content data
 - **[Extending](docs/extending.md)** - Guide for plugin and module developers to register custom tools, prompts, and resources
+- **[Security](SECURITY.md)** - Trust boundary, the `tinker`/`eval()` accepted risk, and how to lock the server down
 
 ## Contributing
 
