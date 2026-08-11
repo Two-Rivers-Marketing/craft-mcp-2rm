@@ -1,13 +1,23 @@
 # STATE — craft-mcp-2rm
 
-**Updated:** 2026-08-10
-**Status:** Active — v1.6.1 released, all 87 tools live-verified on kcma.ddev.site
+**Updated:** 2026-08-11
+**Status:** Active — v1.7.0 released; #18 landed, `list_entries` verbosity closed
 
 ## Current status
 
 2RM fork of `stimmt/craft-mcp` (MCP server for Craft, Neo content-builder + Freeform tools).
-**87 tools, 601 tests, phpstan clean.** Working tree clean, `main` == `origin/main` at `ddffeee`.
-KCMA runs v1.6.1. mbd is still on an older tag and needs a SIGHUP-restart pass.
+**87 tools, 606 tests, phpstan clean.** KCMA runs v1.7.0. mbd is still on v1.5.0 and needs a
+bump + SIGHUP — note v1.7.0 is **breaking** for it (see below).
+
+### v1.7.0 (2026-08-11) — #18 landed, `list_entries` fields opt-in
+
+- **`get_form` #18 fix finally on `main`** (`d402bd8`). PR #27 was **not merged** — 7 of its 8 commits
+  were already on `main` (branch-timing artifact inflating the diff to 21 files/+1004), so the one
+  real commit `429ae4d` was cherry-picked and the PR closed as superseded. Live-verified on KCMA:
+  `notifications`/`connections`/`spamSettings` all lists, none `null`.
+- **BREAKING: `list_entries` omits custom fields** unless `includeFields: true`. Live-measured
+  **127,605 → 11,448 bytes at `limit=25` (92% smaller)**. `includeFields` is appended, not inserted,
+  so positional callers don't shift. `get_entry` unchanged. This closes the field report's finding #2.
 
 ### v1.6.0 / v1.6.1 (2026-08-10) — 12 new tools, live-verified
 
@@ -31,18 +41,16 @@ Detail: [docs/wiki/log/2026-08-10-new-tools-and-live-verification.md](docs/wiki/
 
 ## Next steps
 
-- [ ] **DECIDE: `list_entries` verbosity.** Measured live at **127KB for `limit=25`, 79% SEOmatic**.
-      Options and recommendation in
-      [log/2026-08-10](docs/wiki/log/2026-08-10-new-tools-and-live-verification.md#open-decision--list_entries-verbosity).
-      Left alone because changing the default is breaking for mbd — needs an operator call.
-- [ ] **Matrix/nested-entry writes** — biggest remaining functional gap. Matrix fields accept only
-      scalars; nested content still requires `tinker`.
-- [ ] **SIGHUP mbd's MCP server** + bump it to v1.6.1. Nothing since v1.5.0 is verified there.
-- [ ] **Merge PR #27** — #18 `get_form` fix stranded in a draft PR, still not on `main`.
+- [ ] **Matrix/nested-entry writes** — the biggest remaining functional gap. Matrix fields accept
+      only scalars; nested content still requires `tinker`.
+- [ ] **Bump mbd to v1.7.0 + SIGHUP.** Nothing since v1.5.0 is verified there, and **v1.7.0 changes
+      `list_entries`' default shape** — check mbd for callers relying on `fields` before updating.
+- [ ] `list_forms` returns `forms` as an **object map keyed by id string**, not an array, unlike every
+      other `list_*` tool. Cost real debugging time twice. Groups with the identifier-consistency item.
 - [ ] `parentBlockTypes` param — deferred from the `topLevel` fix.
-- [ ] `get_entry` shares `list_entries`' unfiltered serializer (~6KB, same root cause, lower priority).
 - [ ] Inconsistent identifier params (`entryId` vs `id`) — low priority, breaking.
 - [ ] Composer `no-api` line in install docs.
+- [ ] Delete merged branch `worktree-issue-18-freeform-getform` (PR #27 closed).
 
 ## Open questions
 
@@ -52,6 +60,9 @@ Detail: [docs/wiki/log/2026-08-10-new-tools-and-live-verification.md](docs/wiki/
 
 ## Resolved
 
+- ~~`list_entries` verbosity decision~~ — took the breaking option 2026-08-11, v1.7.0. 92% smaller.
+- ~~Merge PR #27 / land the #18 `get_form` fix~~ — landed 2026-08-11 by cherry-pick; PR closed
+  unmerged (7 of 8 commits were already on `main`).
 - ~~Tag + live-verify the 12 new tools~~ — done 2026-08-10, v1.6.0/v1.6.1.
 - ~~Entry write tools missing from HTTP transport~~ — **no such defect** (2026-08-03). `tools/list`
   is paginated at 50; all tools are advertised across 2 pages. The original verification issued a
