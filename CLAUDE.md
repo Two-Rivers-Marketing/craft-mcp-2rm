@@ -44,6 +44,10 @@ Consumed by the mbd site as a Composer **path repo with a symlink** (`mbd/vendor
 
 Project memory lives in `docs/wiki/`, which holds what is true about this project. User-facing product docs are in `docs/*.md` / `docs/tools/` and are not project memory.
 
+## Convention discovery
+
+When you identify a reusable Craft CMS building pattern or anti-pattern during work on a consuming project, draft it as a new file in docs/conventions/ and include it in the commit. Convention files use OKF frontmatter (type, title, description, tags, generated) and are auto-registered as MCP resources — no code changes needed.
+
 ### Orientation read — every session, no exceptions
 
 Before your first substantive action:

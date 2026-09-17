@@ -14,5 +14,6 @@ enum ResourceCategory: string {
     case CONFIG = 'config';
     case CONTENT = 'content';
     case SYSTEM = 'system';
+    case CONVENTION = 'convention';
     case GENERAL = 'general';
 }

@@ -146,10 +146,14 @@ Pages on 2RM sites are entries whose primary content lives in a Neo field called
 4. Use `get_*` tools to inspect specific items.
 5. Check schema/fields before creating or updating entries; read before you mutate.
 
+## Build Conventions
+
+Build conventions are available as MCP resources under craft://conventions/*. Each has OKF frontmatter (type, description, tags). Before making structural changes to the content model, list conventions and read those relevant to your task.
+
 ## Available Capabilities
 
 **Tools**: Query and manage entries, assets, users, categories, commerce data, Neo schema
-**Resources**: Read configuration, schema information, system state
+**Resources**: Read configuration, schema information, system state, build conventions
 **Prompts**: Generate content, analyze structure, create entries
 INSTRUCTIONS;
     }

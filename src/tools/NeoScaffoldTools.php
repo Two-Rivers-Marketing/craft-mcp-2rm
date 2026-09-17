@@ -12,6 +12,7 @@ use Craft;
 use craft\base\Field;
 use craft\base\FieldInterface;
 use craft\fieldlayoutelements\CustomField;
+use craft\fieldlayoutelements\Heading;
 use craft\fields\Assets as AssetsField;
 use craft\fields\Dropdown;
 use craft\fields\Entries as EntriesField;
@@ -63,6 +64,14 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     /** CKEditor field class (optional plugin), used for the richText type. */
     private const RICH_TEXT_FIELD_CLASS = 'craft\ckeditor\Field';
 
+    /** Shared property field handles that belong in the Section Options tab. */
+    private const SHARED_PROPERTY_FIELDS = [
+        'sectionProperties',
+        'backgroundProperties',
+        'customCss',
+        'extraClasses',
+    ];
+
     /**
      * Check if the Neo plugin is available.
      */
@@ -75,7 +84,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      */
     #[McpTool(
         name: 'create_block_type',
-        description: 'Create a new Neo block type (content-builder component) atomically: the block type, its attached fields, and a rendered template stub in one call. name is the display name; handle defaults to its camelCase form. topLevel (default true) controls whether the block type appears at the top level of the field; set to false for child-only types. Attach existing fields by handle via existingFields (JSON array of strings; an error lists close candidates for unknown handles). Create fields via newFields (JSON array of {name, handle?, type, options?, sources?, maxRelations?, required?} objects; type is one of plainText, richText, dropdown, lightswitch, asset, entries, users; dropdown requires options as [{label, value}]; entries/users accept sources (default "*") and maxRelations). Before creating, each newFields entry is checked against existing fields (same handle, or same type with a similar name) — a match is attached and reported instead of creating a duplicate. childBlockTypes (JSON array of block type handles) marks the block as a container and adds a block.children loop to the stub. The stub is written to templates/body_blocks/<handle>.twig and NEVER overwrites an existing file; pass scaffoldTemplate: false to skip it (recommended for child-only types whose template path differs). The block type is attached to the configured builder Neo field (or fieldHandle) and saved through Neo\'s API so Craft writes the project-config YAML. Pass dryRun: true to preview the block type summary, the field attach/create/match plan, and the stub path + content without saving anything.',
+        description: 'Create a new Neo block type (content-builder component) atomically: the block type, its attached fields, and a rendered template stub in one call. name is the display name; handle defaults to its camelCase form. topLevel (default true) controls whether the block type appears at the top level of the field; set to false for child-only types. Attach existing fields by handle via existingFields (JSON array of strings; an error lists close candidates for unknown handles). Create fields via newFields (JSON array of {name, handle?, type, options?, sources?, maxRelations?, required?} objects; type is one of plainText, richText, dropdown, lightswitch, asset, entries, users; dropdown requires options as [{label, value}]; entries/users accept sources (default "*") and maxRelations). Before creating, each newFields entry is checked against existing fields (same handle, or same type with a similar name) — a match is attached and reported instead of creating a duplicate. childBlockTypes (JSON array of block type handles) marks the block as a container and adds a block.children loop to the stub. The stub is written to templates/body_blocks/<handle>.twig and NEVER overwrites an existing file; pass scaffoldTemplate: false to skip it (recommended for child-only types whose template path differs). The block type is attached to the configured builder Neo field (or fieldHandle) and saved through Neo\'s API so Craft writes the project-config YAML. tabLayout controls tab splitting: auto (default) splits shared property fields (sectionProperties, backgroundProperties, customCss, extraClasses) into a Section Options tab for topLevel or columnItem blocks; single forces one tab. Pass dryRun: true to preview the block type summary, the field attach/create/match plan, and the stub path + content without saving anything.',
     )]
     #[McpToolMeta(category: ToolCategory::SCHEMA, dangerous: true)]
     public function createBlockType(
@@ -87,6 +96,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         ?string $childBlockTypes = null,
         bool $topLevel = true,
         bool $scaffoldTemplate = true,
+        string $tabLayout = 'auto',
         bool $dryRun = false,
         ?RequestContext $context = null,
     ): array {
@@ -99,6 +109,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
             $childBlockTypes,
             $topLevel,
             $scaffoldTemplate,
+            $tabLayout,
             $dryRun,
         ): array {
             $this->assertNeoAvailable();
@@ -125,7 +136,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
             }
 
             $attachments = array_map($this->materializeAttachment(...), $plan['attachments']);
-            $layout = $this->buildFieldLayout($attachments);
+            $layout = $this->buildFieldLayout($attachments, $tabLayout, $plan['topLevel'], $plan['handle']);
             $blockType = $this->buildBlockType($field, $plan, $layout);
             $this->saveBlockType($blockType);
 
@@ -740,26 +751,109 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      * @param array<int, array<string, mixed>> $attachments
      * @throws ToolCallException
      */
-    private function buildFieldLayout(array $attachments): FieldLayout {
+    private function buildFieldLayout(
+        array $attachments,
+        string $tabLayout = 'auto',
+        bool $topLevel = true,
+        string $handle = '',
+    ): FieldLayout {
         $layout = new FieldLayout(['type' => Block::class]);
+
+        if ($tabLayout === 'auto' && $this->shouldSplitTabs($attachments, $topLevel, $handle)) {
+            $layout->setTabs($this->buildSplitTabs($layout, $attachments));
+
+            return $layout;
+        }
+
         $tab = new FieldLayoutTab(['name' => 'Content', 'layout' => $layout]);
-
-        $tab->setElements(array_map(
-            static function (array $item): CustomField {
-                $field = $item['field'];
-                if (!$field instanceof FieldInterface) {
-                    throw new ToolCallException(
-                        "Unable to resolve field '{$item['handle']}' for the block type field layout.",
-                    );
-                }
-
-                return new CustomField($field, ['required' => (bool) $item['required']]);
-            },
-            $attachments,
-        ));
+        $tab->setElements(array_map(self::toCustomField(...), $attachments));
         $layout->setTabs([$tab]);
 
         return $layout;
+    }
+
+    /**
+     * Whether the attachment list qualifies for auto tab splitting.
+     *
+     * @param array<int, array<string, mixed>> $attachments
+     */
+    private function shouldSplitTabs(array $attachments, bool $topLevel, string $handle): bool {
+        if (!$topLevel && $handle !== 'columnItem') {
+            return false;
+        }
+
+        $handles = array_map(
+            static fn (array $item): string => (string) $item['handle'],
+            $attachments,
+        );
+
+        return array_intersect(self::SHARED_PROPERTY_FIELDS, $handles) !== [];
+    }
+
+    /**
+     * Build Content + Section Options tabs for top-level blocks.
+     *
+     * @param array<int, array<string, mixed>> $attachments
+     * @return array{0: FieldLayoutTab, 1: FieldLayoutTab}
+     */
+    private function buildSplitTabs(FieldLayout $layout, array $attachments): array {
+        $content = [];
+        $sectionOptions = [];
+
+        foreach ($attachments as $item) {
+            if (in_array((string) $item['handle'], self::SHARED_PROPERTY_FIELDS, true)) {
+                $sectionOptions[] = $item;
+                continue;
+            }
+            $content[] = $item;
+        }
+
+        $contentTab = new FieldLayoutTab(['name' => 'Content', 'layout' => $layout]);
+        $contentTab->setElements(array_map(self::toCustomField(...), $content));
+
+        $optionsTab = new FieldLayoutTab(['name' => 'Section Options', 'layout' => $layout]);
+        $heading = new Heading();
+        $heading->heading = 'Properties';
+        $optionsTab->setElements([
+            $heading,
+            ...array_map(self::toCustomField(...), $this->sortSharedProperties($sectionOptions)),
+        ]);
+
+        return [$contentTab, $optionsTab];
+    }
+
+    /**
+     * Sort shared property fields into the canonical order.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortSharedProperties(array $items): array {
+        $order = array_flip(self::SHARED_PROPERTY_FIELDS);
+
+        usort($items, static function (array $a, array $b) use ($order): int {
+            return ($order[(string) $a['handle']] ?? 999) <=> ($order[(string) $b['handle']] ?? 999);
+        });
+
+        return $items;
+    }
+
+    /**
+     * Convert an attachment item to a CustomField layout element.
+     *
+     * @param array<string, mixed> $item
+     * @throws ToolCallException
+     */
+    private static function toCustomField(array $item): CustomField {
+        $field = $item['field'];
+
+        if (!$field instanceof FieldInterface) {
+            throw new ToolCallException(
+                "Unable to resolve field '{$item['handle']}' for the block type field layout.",
+            );
+        }
+
+        return new CustomField($field, ['required' => (bool) $item['required']]);
     }
 
     /**
