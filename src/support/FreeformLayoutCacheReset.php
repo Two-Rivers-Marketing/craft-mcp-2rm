@@ -51,10 +51,10 @@ use yii\base\Event;
  */
 final class FreeformLayoutCacheReset {
     /** Freeform layout-persistence bundle (string FQCN — never imported). */
-    public const LAYOUT_PERSISTENCE_CLASS = 'Solspace\\Freeform\\Bundles\\Persistence\\LayoutPersistence';
+    public const string LAYOUT_PERSISTENCE_CLASS = 'Solspace\\Freeform\\Bundles\\Persistence\\LayoutPersistence';
 
     /** Per-request memo properties on that bundle to clear. */
-    private const PROPERTIES = ['cache', 'rowContents'];
+    private const array PROPERTIES = ['cache', 'rowContents'];
 
     /**
      * Reset the memo on every handler bound to $eventName on $controllerClass
@@ -105,7 +105,7 @@ final class FreeformLayoutCacheReset {
             return null;
         }
 
-        if (!is_a($object, $handlerClass)) {
+        if (!$object instanceof $handlerClass) {
             return null;
         }
 

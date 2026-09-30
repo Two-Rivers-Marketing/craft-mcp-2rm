@@ -112,7 +112,7 @@ final class SchemaHelper {
      * Get the short class name for a field type.
      */
     public static function getFieldTypeName(FieldInterface $field): string {
-        return (new ReflectionClass($field))->getShortName();
+        return new ReflectionClass($field)->getShortName();
     }
 
     /**

@@ -58,7 +58,7 @@ final class FreeformFormDeletionCascade {
      *
      * @var array<int, string>
      */
-    public const FORM_ID_TABLES = [
+    public const array FORM_ID_TABLES = [
         '{{%freeform_forms_fields}}',
         '{{%freeform_forms_rows}}',
         '{{%freeform_forms_pages}}',
@@ -73,7 +73,7 @@ final class FreeformFormDeletionCascade {
      *
      * @var array<int, array{table: string, column: string}>
      */
-    public const ELEMENT_ID_TABLES = [
+    public const array ELEMENT_ID_TABLES = [
         ['table' => '{{%searchindex}}', 'column' => 'elementId'],
         ['table' => '{{%elements_sites}}', 'column' => 'elementId'],
         ['table' => '{{%elements}}', 'column' => 'id'],
@@ -129,13 +129,7 @@ final class FreeformFormDeletionCascade {
      * @param array<string, int> $counts
      */
     public static function allClean(array $counts): bool {
-        foreach ($counts as $count) {
-            if ($count !== 0) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($counts, fn ($count) => $count === 0);
     }
 
     /**
@@ -183,7 +177,7 @@ final class FreeformFormDeletionCascade {
      * @return array<int, int>
      */
     public static function collectSubmissionIds(Connection $db, int $formId): array {
-        $ids = (new Query())
+        $ids = new Query()
             ->select(['id'])
             ->from('{{%freeform_submissions}}')
             ->where(['formId' => $formId])
@@ -203,7 +197,7 @@ final class FreeformFormDeletionCascade {
         $counts = [];
 
         foreach ($specs as $spec) {
-            $counts[$spec['label']] = (int) (new Query())
+            $counts[$spec['label']] = (int) new Query()
                 ->from($spec['table'])
                 ->where([$spec['column'] => $spec['values']])
                 ->count('*', $db);

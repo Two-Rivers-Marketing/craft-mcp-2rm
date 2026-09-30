@@ -39,10 +39,10 @@ use twoRivers\craft\Mcp\support\SafeExecution;
  */
 class SeomaticTools implements ConditionalToolProvider {
     /** SEOmatic's plugin class. Referenced as a string so PHP never eagerly resolves it. */
-    private const PLUGIN_CLASS = 'nystudio107\seomatic\Seomatic';
+    private const string PLUGIN_CLASS = 'nystudio107\seomatic\Seomatic';
 
     /** SEOmatic's per-element SEO field type. A per-entry override only exists if the entry has one. */
-    private const FIELD_CLASS = 'nystudio107\seomatic\fields\SeoSettings';
+    private const string FIELD_CLASS = 'nystudio107\seomatic\fields\SeoSettings';
 
     /**
      * The flat SEO surface, mapped onto SEOmatic's internals.
@@ -59,7 +59,7 @@ class SeomaticTools implements ConditionalToolProvider {
      *
      * @var array<string, array{0: string, 1: ?string, 2: ?string, 3: ?string}>
      */
-    private const SEO_FIELDS = [
+    private const array SEO_FIELDS = [
         'title' => ['seoTitle', 'seoTitleSource', 'seoTitleField', 'fromCustom'],
         'description' => ['seoDescription', 'seoDescriptionSource', 'seoDescriptionField', 'fromCustom'],
         'keywords' => ['seoKeywords', 'seoKeywordsSource', 'seoKeywordsField', 'fromCustom'],
@@ -74,7 +74,7 @@ class SeomaticTools implements ConditionalToolProvider {
     ];
 
     /** Source tokens that make SEOmatic derive the value from another content field. */
-    private const PULL_FROM_FIELD_SOURCES = [
+    private const array PULL_FROM_FIELD_SOURCES = [
         'fromField',
         'fromUserField',
         'summaryFromField',
@@ -120,11 +120,11 @@ class SeomaticTools implements ConditionalToolProvider {
     #[McpToolMeta(category: ToolCategory::CONTENT)]
     public function getSeo(int $entryId, ?RequestContext $context = null): array {
         return SafeExecution::run(function () use ($entryId): array {
-            $entry = self::findEntry($entryId);
-            $fieldHandle = self::seoFieldHandle($entry);
-            [$bundle, $level] = self::resolveBundle($entry, $fieldHandle);
+            $entry = $this->findEntry($entryId);
+            $fieldHandle = $this->seoFieldHandle($entry);
+            [$bundle, $level] = $this->resolveBundle($entry, $fieldHandle);
 
-            $globals = self::prop($bundle, 'metaGlobalVars');
+            $globals = $this->prop($bundle, 'metaGlobalVars');
 
             if (!is_object($globals)) {
                 throw new ToolCallException(
@@ -132,7 +132,7 @@ class SeomaticTools implements ConditionalToolProvider {
                 );
             }
 
-            $settings = self::prop($bundle, 'metaBundleSettings');
+            $settings = $this->prop($bundle, 'metaBundleSettings');
 
             $seo = [
                 'entryId' => $entryId,
@@ -144,19 +144,17 @@ class SeomaticTools implements ConditionalToolProvider {
 
             $sources = [];
 
-            foreach (self::SEO_FIELDS as $key => [$var, $sourceKey, $pullFieldKey, $_custom]) {
-                $value = self::str(self::prop($globals, $var));
+            foreach (self::SEO_FIELDS as $key => [$var, $sourceKey, $pullFieldKey]) {
+                $value = $this->str($this->prop($globals, $var));
                 $seo[$key] = $value;
-
-                if ($level !== 'entry' || !is_object($settings)) {
+                if ($level !== 'entry') {
+                    continue;
+                }
+                if (!is_object($settings)) {
                     continue;
                 }
 
-                $origin = self::classifyOrigin(
-                    $sourceKey === null ? null : self::str(self::prop($settings, $sourceKey)),
-                    $pullFieldKey === null ? null : self::str(self::prop($settings, $pullFieldKey)),
-                    $value,
-                );
+                $origin = $this->classifyOrigin($sourceKey === null ? null : $this->str($this->prop($settings, $sourceKey)), $pullFieldKey === null ? null : $this->str($this->prop($settings, $pullFieldKey)), $value);
 
                 if ($origin === null) {
                     continue;
@@ -209,8 +207,8 @@ class SeomaticTools implements ConditionalToolProvider {
         ];
 
         return SafeExecution::run(function () use ($entryId, $values): array {
-            $entry = self::findEntry($entryId);
-            $fieldHandle = self::seoFieldHandle($entry);
+            $entry = $this->findEntry($entryId);
+            $fieldHandle = $this->seoFieldHandle($entry);
 
             if ($fieldHandle === null) {
                 throw new ToolCallException(
@@ -219,8 +217,8 @@ class SeomaticTools implements ConditionalToolProvider {
             }
 
             $bundle = $entry->getFieldValue($fieldHandle);
-            $globals = is_object($bundle) ? self::prop($bundle, 'metaGlobalVars') : null;
-            $settings = is_object($bundle) ? self::prop($bundle, 'metaBundleSettings') : null;
+            $globals = is_object($bundle) ? $this->prop($bundle, 'metaGlobalVars') : null;
+            $settings = is_object($bundle) ? $this->prop($bundle, 'metaBundleSettings') : null;
 
             if (!is_object($globals) || !is_object($settings)) {
                 throw new ToolCallException(
@@ -228,7 +226,7 @@ class SeomaticTools implements ConditionalToolProvider {
                 );
             }
 
-            $updated = self::applyValues($globals, $settings, $values);
+            $updated = $this->applyValues($globals, $settings, $values);
 
             if ($updated === []) {
                 throw new ToolCallException('No SEO fields given; pass at least one field to update.');
@@ -254,7 +252,7 @@ class SeomaticTools implements ConditionalToolProvider {
      * @param array<string, ?string> $values
      * @return list<string>
      */
-    private static function applyValues(object $globals, object $settings, array $values): array {
+    private function applyValues(object $globals, object $settings, array $values): array {
         $updated = [];
 
         foreach (self::SEO_FIELDS as $key => [$var, $sourceKey, $_pullFieldKey, $custom]) {
@@ -266,8 +264,10 @@ class SeomaticTools implements ConditionalToolProvider {
 
             $globals->{$var} = $value;
             $updated[] = $key;
-
-            if ($sourceKey === null || $custom === null) {
+            if ($sourceKey === null) {
+                continue;
+            }
+            if ($custom === null) {
                 continue;
             }
 
@@ -290,14 +290,14 @@ class SeomaticTools implements ConditionalToolProvider {
      *
      * @return array{0: object, 1: string}
      */
-    private static function resolveBundle(Entry $entry, ?string $fieldHandle): array {
+    private function resolveBundle(Entry $entry, ?string $fieldHandle): array {
         $bundle = $fieldHandle === null ? null : $entry->getFieldValue($fieldHandle);
 
         if (is_object($bundle)) {
             return [$bundle, 'entry'];
         }
 
-        $metaBundles = self::metaBundles();
+        $metaBundles = $this->metaBundles();
         $bundle = $metaBundles->getContentMetaBundleForElement($entry);
 
         if (is_object($bundle)) {
@@ -322,7 +322,7 @@ class SeomaticTools implements ConditionalToolProvider {
      * the inheritance/derivation token otherwise. Source tokens are
      * MetaBundleSettings' validated enum values.
      */
-    private static function classifyOrigin(?string $source, ?string $pullField, ?string $value): ?string {
+    private function classifyOrigin(?string $source, ?string $pullField, ?string $value): ?string {
         if ($source === 'sameAsGlobal') {
             return 'global';
         }
@@ -352,7 +352,7 @@ class SeomaticTools implements ConditionalToolProvider {
         return null;
     }
 
-    private static function findEntry(int $entryId): Entry {
+    private function findEntry(int $entryId): Entry {
         $entry = Entry::find()->id($entryId)->status(null)->one();
 
         if (!$entry instanceof Entry) {
@@ -365,7 +365,7 @@ class SeomaticTools implements ConditionalToolProvider {
     /**
      * Find the handle of the entry's SEOmatic SeoSettings field, if it has one.
      */
-    private static function seoFieldHandle(Entry $entry): ?string {
+    private function seoFieldHandle(Entry $entry): ?string {
         $layout = $entry->getFieldLayout();
 
         if ($layout === null) {
@@ -392,7 +392,7 @@ class SeomaticTools implements ConditionalToolProvider {
      * SEOmatic's MetaBundles service, reached through the plugin instance so
      * no SEOmatic class is named in resolvable position.
      */
-    private static function metaBundles(): object {
+    private function metaBundles(): object {
         $plugin = Craft::$app->getPlugins()->getPlugin('seomatic');
 
         if ($plugin === null || !method_exists($plugin, 'getMetaBundles')) {
@@ -407,7 +407,7 @@ class SeomaticTools implements ConditionalToolProvider {
     /**
      * Read a property off a duck-typed SEOmatic model.
      */
-    private static function prop(mixed $object, string $name): mixed {
+    private function prop(mixed $object, string $name): mixed {
         if (!is_object($object)) {
             return null;
         }
@@ -429,7 +429,7 @@ class SeomaticTools implements ConditionalToolProvider {
      * Normalize a duck-typed read to a string, since SEOmatic's model
      * properties are untyped and hold '' as often as null.
      */
-    private static function str(mixed $value): ?string {
+    private function str(mixed $value): ?string {
         if ($value === null || is_array($value) || is_object($value)) {
             return null;
         }

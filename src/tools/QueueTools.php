@@ -29,7 +29,7 @@ class QueueTools {
      * craft\queue\Queue::getJobInfo(). STATUS_DONE only appears for jobs that
      * have already left the queue, so it is not a valid filter value.
      */
-    private const STATUS_NAMES = [
+    private const array STATUS_NAMES = [
         CraftQueue::STATUS_WAITING => 'waiting',
         CraftQueue::STATUS_RESERVED => 'reserved',
         CraftQueue::STATUS_DONE => 'done',
@@ -40,7 +40,7 @@ class QueueTools {
      * Accepted values for the status filter. "delayed" is not a stored status —
      * it is derived from a waiting job whose delay has not elapsed.
      */
-    private const FILTERABLE_STATUSES = ['waiting', 'delayed', 'reserved', 'failed'];
+    private const array FILTERABLE_STATUSES = ['waiting', 'delayed', 'reserved', 'failed'];
 
     /**
      * List queue jobs.

@@ -174,7 +174,7 @@ class NeoSchemaTools implements ConditionalToolProvider {
             }
             $resolvedPath = $candidate;
             $resolvedAbsolute = $absolute;
-            $servedBy = str_starts_with($absolute, $siteRoot) ? 'project' : 'plugin';
+            $servedBy = str_starts_with($absolute, (string) $siteRoot) ? 'project' : 'plugin';
             break;
         }
 

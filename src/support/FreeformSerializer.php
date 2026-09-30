@@ -398,7 +398,7 @@ final class FreeformSerializer {
         // Only read a declared property directly when it is public; non-public
         // properties (e.g. Freeform field $handle/$label) must go through their
         // getter, or a bare $object->$name would hit __get / an access error.
-        if (property_exists($object, $name) && (new ReflectionProperty($object, $name))->isPublic()) {
+        if (property_exists($object, $name) && new ReflectionProperty($object, $name)->isPublic()) {
             return $object->$name ?? null;
         }
 

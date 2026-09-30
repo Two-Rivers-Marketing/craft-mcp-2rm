@@ -458,8 +458,10 @@ final class NeoBlockTree {
 
         foreach ($afterFlat as $block) {
             $id = $block['id'] ?? null;
-
-            if (!is_numeric($id) || isset($known[(int) $id])) {
+            if (!is_numeric($id)) {
+                continue;
+            }
+            if (isset($known[(int) $id])) {
                 continue;
             }
 

@@ -31,7 +31,7 @@ final class FreeformFormPlan {
     /**
      * Minimal v1 field-type keyword => Freeform field class (string FQCN).
      */
-    public const FIELD_TYPE_MAP = [
+    public const array FIELD_TYPE_MAP = [
         'text' => 'Solspace\\Freeform\\Fields\\Implementations\\TextField',
         'textarea' => 'Solspace\\Freeform\\Fields\\Implementations\\TextareaField',
         'email' => 'Solspace\\Freeform\\Fields\\Implementations\\EmailField',
@@ -41,7 +41,7 @@ final class FreeformFormPlan {
     ];
 
     /** Field-type keywords that require/accept an options list. */
-    public const OPTION_FIELD_TYPES = ['dropdown'];
+    public const array OPTION_FIELD_TYPES = ['dropdown'];
 
     /**
      * Resolve the form handle: explicit param, or StringHelper::toHandle() of
@@ -63,7 +63,7 @@ final class FreeformFormPlan {
      * @throws ToolCallException
      */
     public static function assertValidHandle(string $handle, string $label): void {
-        if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $handle) === 1) {
+        if (preg_match('/^[a-zA-Z]\w*$/', $handle) === 1) {
             return;
         }
 

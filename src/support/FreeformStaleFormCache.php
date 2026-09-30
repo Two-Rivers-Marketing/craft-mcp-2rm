@@ -52,10 +52,10 @@ final class FreeformStaleFormCache {
      * cannot fail the whole call: signals a reload is required rather than a
      * genuine zero/unknown count.
      */
-    public const RELOAD_SIGNAL = 'reload_required';
+    public const string RELOAD_SIGNAL = 'reload_required';
 
     /** Actionable message surfaced to the user for a crash-prone read/delete. */
-    public const RELOAD_MESSAGE = 'MCP reload required (SIGHUP): this Freeform form was created after the MCP server started. Freeform caches its form map in a process-lifetime static that cannot be refreshed at runtime, so this form\'s submissions are unreadable until the server is reloaded. Restart / SIGHUP the MCP server, then retry.';
+    public const string RELOAD_MESSAGE = 'MCP reload required (SIGHUP): this Freeform form was created after the MCP server started. Freeform caches its form map in a process-lifetime static that cannot be refreshed at runtime, so this form\'s submissions are unreadable until the server is reloaded. Restart / SIGHUP the MCP server, then retry.';
 
     /**
      * Run a submission-query operation, translating the stale form-map crash
@@ -88,13 +88,7 @@ final class FreeformStaleFormCache {
      * "Undefined array key" crash originating in Freeform's SubmissionQuery.
      */
     public static function isStaleFormCacheError(Throwable $e): bool {
-        foreach (self::chain($e) as $throwable) {
-            if (self::matchesSignature($throwable)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(self::chain($e), fn ($throwable) => self::matchesSignature($throwable));
     }
 
     /**

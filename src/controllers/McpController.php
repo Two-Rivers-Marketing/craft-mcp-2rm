@@ -9,6 +9,8 @@ use craft\helpers\App;
 use craft\web\Controller;
 use GuzzleHttp\Psr7\ServerRequest as PsrServerRequest;
 use GuzzleHttp\Psr7\Utils;
+use Override;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use twoRivers\craft\Mcp\Mcp;
 use twoRivers\craft\Mcp\services\McpServerFactory;
@@ -77,7 +79,7 @@ class McpController extends Controller {
         }
 
         $header = Craft::$app->getRequest()->getHeaders()->get('Authorization', '');
-        $provided = str_starts_with($header, 'Bearer ') ? substr($header, 7) : '';
+        $provided = str_starts_with((string) $header, 'Bearer ') ? substr((string) $header, 7) : '';
 
         if ($provided === '' || !hash_equals($token, $provided)) {
             throw new ForbiddenHttpException('Invalid or missing MCP bearer token.');
@@ -107,7 +109,7 @@ class McpController extends Controller {
     /**
      * Copy a PSR-7 response onto Craft's response object.
      */
-    private function emit(\Psr\Http\Message\ResponseInterface $psrResponse): Response {
+    private function emit(ResponseInterface $psrResponse): Response {
         $response = Craft::$app->getResponse();
         $response->setStatusCode($psrResponse->getStatusCode());
         $response->format = Response::FORMAT_RAW;
@@ -121,6 +123,7 @@ class McpController extends Controller {
         return $response;
     }
 
+    #[Override]
     public function beforeAction($action): bool {
         $this->enableCsrfValidation = false;
 

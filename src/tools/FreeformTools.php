@@ -39,7 +39,7 @@ use twoRivers\craft\Mcp\support\SafeExecution;
  */
 class FreeformTools implements ConditionalToolProvider {
     /** Inline CSV content in export_submissions responses up to this many bytes. */
-    private const INLINE_CONTENT_LIMIT = 32768;
+    private const int INLINE_CONTENT_LIMIT = 32768;
 
     /**
      * Check if the Freeform plugin is available.
@@ -201,7 +201,7 @@ class FreeformTools implements ConditionalToolProvider {
             return [];
         }
 
-        return is_iterable($result) ? array_values(array_filter([...$result], 'is_object')) : [];
+        return is_iterable($result) ? array_values(array_filter([...$result], is_object(...))) : [];
     }
 
     /**

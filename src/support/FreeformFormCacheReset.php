@@ -70,27 +70,27 @@ use Throwable;
  */
 final class FreeformFormCacheReset {
     /** Freeform plugin class, for FormsService::class::getInstance()->forms. */
-    public const FREEFORM_CLASS = 'Solspace\\Freeform\\Freeform';
+    public const string FREEFORM_CLASS = 'Solspace\\Freeform\\Freeform';
 
     /** Freeform's field/row provider (string FQCN — never imported). */
-    public const FIELD_PROVIDER_CLASS = 'Solspace\\Freeform\\Bundles\\Fields\\FieldProvider';
+    public const string FIELD_PROVIDER_CLASS = 'Solspace\\Freeform\\Bundles\\Fields\\FieldProvider';
 
     /**
      * Freeform's layout-assembly service (string FQCN — never imported).
      * Reached via Freeform::getInstance()->formLayouts, NOT the container
      * directly, mirroring resolveFormsService()/resolveFieldProvider().
      */
-    public const LAYOUTS_SERVICE_CLASS = 'Solspace\\Freeform\\Services\\Form\\LayoutsService';
+    public const string LAYOUTS_SERVICE_CLASS = 'Solspace\\Freeform\\Services\\Form\\LayoutsService';
 
     /** Property name of the Cache\Memo on FormsService / FieldProvider. */
-    private const CACHE_PROPERTY = 'cache';
+    private const string CACHE_PROPERTY = 'cache';
 
     /**
      * Plain-array memo properties on LayoutsService (verified against the
      * installed 5.15.16 vendor source: private array $pages, $layouts,
      * $rows, $formLayouts — none of them a Memo object).
      */
-    private const LAYOUTS_SERVICE_ARRAY_PROPERTIES = ['pages', 'layouts', 'rows', 'formLayouts'];
+    private const array LAYOUTS_SERVICE_ARRAY_PROPERTIES = ['pages', 'layouts', 'rows', 'formLayouts'];
 
     /**
      * Resolve and clear the memo on every known Freeform read-cache service.

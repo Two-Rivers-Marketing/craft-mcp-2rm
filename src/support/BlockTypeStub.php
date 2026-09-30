@@ -24,11 +24,11 @@ namespace twoRivers\craft\Mcp\support;
  * @author 2RM
  */
 final class BlockTypeStub {
-    public const TOKEN_HANDLE = '__BLOCK_HANDLE__';
+    public const string TOKEN_HANDLE = '__BLOCK_HANDLE__';
 
-    public const TOKEN_FIELD_HINTS = '__FIELD_HINTS__';
+    public const string TOKEN_FIELD_HINTS = '__FIELD_HINTS__';
 
-    public const TOKEN_CHILDREN_LOOP = '__CHILDREN_LOOP__';
+    public const string TOKEN_CHILDREN_LOOP = '__CHILDREN_LOOP__';
 
     /**
      * Render the template stub for a block type.

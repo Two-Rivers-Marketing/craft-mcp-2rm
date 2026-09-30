@@ -6,6 +6,7 @@ namespace twoRivers\craft\Mcp\tools;
 
 use benf\neo\elements\Block;
 use benf\neo\Field as NeoField;
+use benf\neo\helpers\Memoize;
 use benf\neo\models\BlockType;
 use benf\neo\Plugin as Neo;
 use Craft;
@@ -52,7 +53,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     use ResolvesNeoBuilderField;
 
     /** Map of newFields type keywords to Craft field classes. */
-    private const FIELD_TYPE_MAP = [
+    private const array FIELD_TYPE_MAP = [
         'plainText' => PlainText::class,
         'dropdown' => Dropdown::class,
         'lightswitch' => Lightswitch::class,
@@ -62,10 +63,10 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     ];
 
     /** CKEditor field class (optional plugin), used for the richText type. */
-    private const RICH_TEXT_FIELD_CLASS = 'craft\ckeditor\Field';
+    private const string RICH_TEXT_FIELD_CLASS = 'craft\ckeditor\Field';
 
     /** Shared property field handles that belong in the Section Options tab. */
-    private const SHARED_PROPERTY_FIELDS = [
+    private const array SHARED_PROPERTY_FIELDS = [
         'sectionProperties',
         'backgroundProperties',
         'customCss',
@@ -210,7 +211,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      * @throws ToolCallException
      */
     private function assertValidHandle(string $handle, string $label): void {
-        if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $handle) !== 1) {
+        if (preg_match('/^[a-zA-Z]\w*$/', $handle) !== 1) {
             throw new ToolCallException(
                 "{$label} handle '{$handle}' is invalid: handles must start with a letter and contain only letters, digits and underscores.",
             );
@@ -766,7 +767,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         }
 
         $tab = new FieldLayoutTab(['name' => 'Content', 'layout' => $layout]);
-        $tab->setElements(array_map(self::toCustomField(...), $attachments));
+        $tab->setElements(array_map($this->toCustomField(...), $attachments));
         $layout->setTabs([$tab]);
 
         return $layout;
@@ -809,14 +810,14 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         }
 
         $contentTab = new FieldLayoutTab(['name' => 'Content', 'layout' => $layout]);
-        $contentTab->setElements(array_map(self::toCustomField(...), $content));
+        $contentTab->setElements(array_map($this->toCustomField(...), $content));
 
         $optionsTab = new FieldLayoutTab(['name' => 'Section Options', 'layout' => $layout]);
         $heading = new Heading();
         $heading->heading = 'Properties';
         $optionsTab->setElements([
             $heading,
-            ...array_map(self::toCustomField(...), $this->sortSharedProperties($sectionOptions)),
+            ...array_map($this->toCustomField(...), $this->sortSharedProperties($sectionOptions)),
         ]);
 
         return [$contentTab, $optionsTab];
@@ -831,9 +832,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
     private function sortSharedProperties(array $items): array {
         $order = array_flip(self::SHARED_PROPERTY_FIELDS);
 
-        usort($items, static function (array $a, array $b) use ($order): int {
-            return ($order[(string) $a['handle']] ?? 999) <=> ($order[(string) $b['handle']] ?? 999);
-        });
+        usort($items, static fn (array $a, array $b): int => ($order[(string) $a['handle']] ?? 999) <=> ($order[(string) $b['handle']] ?? 999));
 
         return $items;
     }
@@ -844,7 +843,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      * @param array<string, mixed> $item
      * @throws ToolCallException
      */
-    private static function toCustomField(array $item): CustomField {
+    private function toCustomField(array $item): CustomField {
         $field = $item['field'];
 
         if (!$field instanceof FieldInterface) {
@@ -934,8 +933,8 @@ class NeoScaffoldTools implements ConditionalToolProvider {
      * memo class name if a Neo upgrade brings back the stale-read symptom.
      */
     private function flushBlockTypeCaches(): void {
-        if (class_exists(\benf\neo\helpers\Memoize::class)) {
-            \benf\neo\helpers\Memoize::$blockTypesByFieldId = [];
+        if (class_exists(Memoize::class)) {
+            Memoize::$blockTypesByFieldId = [];
         }
 
         Craft::$app->getFields()->refreshFields();

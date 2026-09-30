@@ -201,7 +201,7 @@ final class ConfigResources {
         return [
             'handle' => $handle,
             'name' => $volume->name ?? '',
-            'fsType' => (new ReflectionClass($fs))->getShortName(),
+            'fsType' => new ReflectionClass($fs)->getShortName(),
             'hasUrls' => $fs->hasUrls,
             'assetCount' => (int) Asset::find()->volume($handle)->count(),
         ];

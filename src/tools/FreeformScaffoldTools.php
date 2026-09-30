@@ -58,22 +58,22 @@ use yii\base\Event;
  */
 class FreeformScaffoldTools implements ConditionalToolProvider {
     /** Freeform "Regular" form type (string FQCN — never imported). */
-    private const FORM_TYPE_CLASS = 'Solspace\\Freeform\\Form\\Types\\Regular';
+    private const string FORM_TYPE_CLASS = 'Solspace\\Freeform\\Form\\Types\\Regular';
 
     /** Freeform API FormsController that owns the persistence events. */
-    private const FORMS_CONTROLLER_CLASS = 'Solspace\\Freeform\\controllers\\api\\FormsController';
+    private const string FORMS_CONTROLLER_CLASS = 'Solspace\\Freeform\\controllers\\api\\FormsController';
 
     /** Freeform persist-form event carrying the form + layout payload. */
-    private const PERSIST_EVENT_CLASS = 'Solspace\\Freeform\\Events\\Forms\\PersistFormEvent';
+    private const string PERSIST_EVENT_CLASS = 'Solspace\\Freeform\\Events\\Forms\\PersistFormEvent';
 
     /** Freeform property provider that yields a field type's editable props. */
-    private const PROPERTY_PROVIDER_CLASS = 'Solspace\\Freeform\\Bundles\\Attributes\\Property\\PropertyProvider';
+    private const string PROPERTY_PROVIDER_CLASS = 'Solspace\\Freeform\\Bundles\\Attributes\\Property\\PropertyProvider';
 
     /** Freeform plugin class (for the forms service). */
-    private const FREEFORM_CLASS = 'Solspace\\Freeform\\Freeform';
+    private const string FREEFORM_CLASS = 'Solspace\\Freeform\\Freeform';
 
     /** Freeform submission element (for the per-form content-table name). */
-    private const SUBMISSION_ELEMENT_CLASS = 'Solspace\\Freeform\\Elements\\Submission';
+    private const string SUBMISSION_ELEMENT_CLASS = 'Solspace\\Freeform\\Elements\\Submission';
 
     /**
      * Check if the Freeform plugin is available.
@@ -343,24 +343,24 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
      */
     private function loadRawLayout(int $formId): array {
         return [
-            'pages' => (new Query())
+            'pages' => new Query()
                 ->select(['id', 'layoutId', 'label', 'order', 'metadata', 'uid'])
                 ->from('{{%freeform_forms_pages}}')
                 ->where(['formId' => $formId])
                 ->orderBy(['order' => \SORT_ASC])
                 ->all(),
-            'layouts' => (new Query())
+            'layouts' => new Query()
                 ->select(['id', 'uid'])
                 ->from('{{%freeform_forms_layouts}}')
                 ->where(['formId' => $formId])
                 ->all(),
-            'rows' => (new Query())
+            'rows' => new Query()
                 ->select(['id', 'order', 'uid'])
                 ->from('{{%freeform_forms_rows}}')
                 ->where(['formId' => $formId])
                 ->indexBy('id')
                 ->all(),
-            'fields' => (new Query())
+            'fields' => new Query()
                 ->select(['id', 'type', 'metadata', 'rowId', 'order', 'uid'])
                 ->from('{{%freeform_forms_fields}}')
                 ->where(['formId' => $formId])
@@ -550,7 +550,7 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
      * @throws ToolCallException
      */
     private function buildUpdateFormObject(int $formId): stdClass {
-        $row = (new Query())
+        $row = new Query()
             ->select(['uid', 'metadata'])
             ->from('{{%freeform_forms}}')
             ->where(['id' => $formId])
@@ -732,7 +732,7 @@ class FreeformScaffoldTools implements ConditionalToolProvider {
     private function buildPayload(string $name, string $handle, array $specs): stdClass {
         $layoutUid = StringHelper::UUID();
         $pageUid = StringHelper::UUID();
-        $rowUids = array_map(static fn (): string => StringHelper::UUID(), $specs);
+        $rowUids = array_map(StringHelper::UUID(...), $specs);
         $propertyProvider = $this->propertyProvider();
 
         $rows = array_map(

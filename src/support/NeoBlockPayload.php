@@ -60,7 +60,7 @@ final class NeoBlockPayload {
      * @return array<int, string>
      */
     public static function unknownHandles(array $fields, array $allowedHandles): array {
-        return array_values(array_diff(array_map('strval', array_keys($fields)), $allowedHandles));
+        return array_values(array_diff(array_map(strval(...), array_keys($fields)), $allowedHandles));
     }
 
     /**

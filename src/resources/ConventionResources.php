@@ -20,7 +20,7 @@ use twoRivers\craft\Mcp\support\SafeResourceExecution;
  * @author 2RM
  */
 final class ConventionResources {
-    private const CONVENTIONS_DIR = __DIR__ . '/../../docs/conventions';
+    private const string CONVENTIONS_DIR = __DIR__ . '/../../docs/conventions';
 
     /**
      * List all available conventions with their frontmatter metadata.
@@ -53,7 +53,7 @@ final class ConventionResources {
             foreach ($files as $file) {
                 $topic = basename($file, '.md');
                 $content = (string) file_get_contents($file);
-                $meta = self::parseFrontmatter($content);
+                $meta = $this->parseFrontmatter($content);
 
                 $conventions[] = [
                     'topic' => $topic,
@@ -82,7 +82,7 @@ final class ConventionResources {
             $dir = realpath(self::CONVENTIONS_DIR);
 
             if ($dir === false || !is_dir($dir)) {
-                throw new ResourceReadException("Conventions directory not found.");
+                throw new ResourceReadException('Conventions directory not found.');
             }
 
             $safe = basename($topic);
@@ -101,7 +101,7 @@ final class ConventionResources {
      *
      * @return array{title?: string, description?: string, tags?: list<string>}
      */
-    private static function parseFrontmatter(string $content): array {
+    private function parseFrontmatter(string $content): array {
         if (preg_match('/\A---\n(.+?)\n---/s', $content, $m) !== 1) {
             return [];
         }
@@ -119,7 +119,7 @@ final class ConventionResources {
 
         if (preg_match('/^tags:\s*\[(.+)]$/m', $block, $tags) === 1) {
             $meta['tags'] = array_map(
-                static fn (string $tag): string => trim($tag),
+                trim(...),
                 explode(',', $tags[1]),
             );
         }

@@ -37,7 +37,7 @@ class FileLogger extends AbstractLogger {
 
     private readonly string $minLevel;
 
-    private ?DateTimeZone $timezone = null;
+    private DateTimeZone $timezone;
 
     public function __construct(
         private readonly string $logPath,
