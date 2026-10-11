@@ -50,6 +50,10 @@ results. Two further curl-level traps from the same session:
 - Every non-`initialize` request needs the `Mcp-Session-Id` header, or the server answers
   `-32600 "A valid session id is REQUIRED for non-initialize requests."`
 
+## sdk 0.7 transport limits
+
+Since `mcp/sdk` `^0.7.1` (2026-10-11): 4 MiB cap per stdio message (dropped with a log warning, **no reply**) and per HTTP body (`413`); malformed `Mcp-Session-Id` → `400`. Stdio also fragments single messages of ~200 KiB+ into parse errors (pre-existing). Element loading is pinned eager. Detail and verification status: [mcp-sdk-0-7-upgrade.md](mcp-sdk-0-7-upgrade.md).
+
 ## Code changes need a SIGHUP, not `reload_mcp`
 
 The server (`bin/mcp-server`) is one long-running process. Editing plugin code does not take effect
@@ -63,6 +67,7 @@ restart before new tools appear.
 
 ## Cross-references
 
+- [mcp-sdk-0-7-upgrade.md](mcp-sdk-0-7-upgrade.md) — sdk move, advisory, size caps, eager loading
 - [neo-integration.md](neo-integration.md) — template resolution, another live-only failure mode
 - [freeform-integration.md](freeform-integration.md) — long-running-process cache hazards
 - [../log/2026-08-03-http-transport-non-bug.md](../log/2026-08-03-http-transport-non-bug.md) — the investigation that produced this page
