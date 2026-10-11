@@ -94,7 +94,7 @@ class McpController extends Controller {
         $request = Craft::$app->getRequest();
 
         // streamFor() leaves the pointer at the end; rewind so the transport's
-        // getBody()->getContents() actually reads the JSON-RPC payload.
+        // body read actually sees the JSON-RPC payload.
         $body = Utils::streamFor($request->getRawBody());
         $body->rewind();
 

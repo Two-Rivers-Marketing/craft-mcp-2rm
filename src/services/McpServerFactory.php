@@ -55,7 +55,11 @@ class McpServerFactory {
                 scanDirs: ['tools', 'prompts', 'resources'],
                 excludeDirs: ['vendor', 'support', 'services', 'events', 'models', 'enums', 'attributes', 'completions', 'contracts'],
             )
-            ->setContainer($this->container);
+            ->setContainer($this->container)
+            // SDK 0.7 defers discovery to the first registry read by default.
+            // Craft is fully booted before this runs, so load at build time as
+            // before: a bad registration fails server startup, not a request.
+            ->setLazyLoading(false);
 
         if ($persistentSessions) {
             $builder->setSession(new FileSessionStore(Craft::getAlias('@storage/mcp-sessions')));

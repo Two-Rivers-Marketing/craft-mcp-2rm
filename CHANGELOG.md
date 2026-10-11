@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Upgraded `mcp/sdk` from `^0.6` to `^0.7.1`. Every `0.6.x` release is covered by a high-severity advisory (PKSA-p9gd-j6gr-6f9t / CVE-2026-53965, affecting `>=0.5.0,<0.7.1`), so Composer's default security block refused to install the plugin
+
+### Changed
+- The server keeps loading tools, prompts, and resources at build time (`setLazyLoading(false)`): SDK 0.7 made loading lazy by default, which would move a registration failure from server startup to the first request
+- Inherited from SDK 0.7: a single stdio message or HTTP request body larger than 4 MiB is now rejected, and a malformed `Mcp-Session-Id` header returns `400`
+
 ## [1.3.0] - 2026-07-07
 
 ### Added
