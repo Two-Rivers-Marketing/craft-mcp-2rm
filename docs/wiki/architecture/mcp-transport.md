@@ -15,7 +15,7 @@ How this plugin's MCP server exposes its toolset, and the one non-obvious behavi
 
 The MCP PHP SDK paginates every list method. The default page size is **50**, set in
 `vendor/mcp/sdk/src/Server/Builder.php:100` (`private int $paginationLimit = 50`), and changeable via
-`Builder::setPaginationLimit()` (`:242`). The same default applies to `resources/list`,
+`Builder::setPaginationLimit()` (`:246`). The same default applies to `resources/list`,
 `prompts/list`, and `resourceTemplates/list` — their handlers each take `int $pageSize = 20`, which
 the Builder's limit overrides.
 
