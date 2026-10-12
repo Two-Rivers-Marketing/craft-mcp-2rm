@@ -1,13 +1,21 @@
 # STATE — craft-mcp-2rm
 
-**Updated:** 2026-08-11
-**Status:** Active — v1.7.0 released; #18 landed, `list_entries` verbosity closed
+**Updated:** 2026-10-11
+**Status:** Active — `main` is `5aff795` (mcp/sdk ^0.7.1, PR #35 merged, **untagged**); newest tag v1.8.0
 
 ## Current status
 
 2RM fork of `stimmt/craft-mcp` (MCP server for Craft, Neo content-builder + Freeform tools).
-**87 tools, 606 tests, phpstan clean.** KCMA runs v1.7.0. mbd is still on v1.5.0 and needs a
+**87 tools, 608 tests (reported by PR #35's run; was 606), phpstan clean.** KCMA runs v1.7.0. mbd is still on v1.5.0 and needs a
 bump + SIGHUP — note v1.7.0 is **breaking** for it (see below).
+
+### mcp/sdk ^0.7.1 (2026-10-11, PR #35, untagged)
+
+Moves off `mcp/sdk` 0.6.0, which is under PKSA-p9gd-j6gr-6f9t / CVE-2026-53965 (`>=0.5.0,<0.7.1`) and was blocking
+consumer installs under Composer's default security settings. Loading pinned eager; new 4 MiB stdio/HTTP caps.
+Live-verified in a throwaway Craft 5 + Neo site only — **not** on a real consuming site, the
+Freeform/Commerce/Navigation/SEOmatic tools, SIGHUP, or `reload_mcp`. Consumers get it only via a tag or by
+requiring the branch/commit. Detail: [docs/wiki/architecture/mcp-sdk-0-7-upgrade.md](docs/wiki/architecture/mcp-sdk-0-7-upgrade.md).
 
 ### v1.7.0 (2026-08-11) — #18 landed, `list_entries` fields opt-in
 
@@ -41,6 +49,12 @@ Detail: [docs/wiki/log/2026-08-10-new-tools-and-live-verification.md](docs/wiki/
 
 ## Next steps
 
+- [ ] **Tag a release** carrying the sdk fix, then verify on a real consuming site (KCMA/mbd) incl. SIGHUP + `reload_mcp`.
+- [ ] **`CHANGELOG.md:15` is wrong** — says a stdio message over 4 MiB is "rejected"; it is discarded with a log warning and no reply (only HTTP gives `413`).
+- [ ] **PHP 8.3 still named** though `composer.json` requires `^8.4`: `docs/installation.md:10`, `docs/installation.md:254`, `CLAUDE.md:5`, `.github/workflows/release.yml:25`.
+- [ ] **`README.md:20` calls the repo private**; it is public.
+- [ ] Decide whether to keep `config.policy.advisories.block: false` in `composer.json` (hides the block from this repo's own CI); bump `enshrined/svg-sanitize` in the lock (3 medium advisories).
+- [ ] Stdio messages ≥ ~200 KiB are fragmented into parse errors (pre-existing, old sdk too) — uninvestigated.
 - [ ] **Matrix/nested-entry writes** — the biggest remaining functional gap. Matrix fields accept
       only scalars; nested content still requires `tinker`.
 - [ ] **Bump mbd to v1.7.0 + SIGHUP.** Nothing since v1.5.0 is verified there, and **v1.7.0 changes
@@ -54,6 +68,7 @@ Detail: [docs/wiki/log/2026-08-10-new-tools-and-live-verification.md](docs/wiki/
 
 ## Open questions
 
+- Lazy vs eager element loading for the HTTP transport (eager pinned today) — owner's call; see the sdk 0.7 page.
 - Raise the MCP SDK's `paginationLimit` above the tool count (now 87)? Pagination is correct and
   compliant clients follow `nextCursor`, so this is consumer ergonomics, not a fix. See
   [docs/wiki/architecture/mcp-transport.md](docs/wiki/architecture/mcp-transport.md).
@@ -68,3 +83,8 @@ Detail: [docs/wiki/log/2026-08-10-new-tools-and-live-verification.md](docs/wiki/
   is paginated at 50; all tools are advertised across 2 pages. The original verification issued a
   single un-paginated request. See
   [docs/wiki/log/2026-08-03-http-transport-non-bug.md](docs/wiki/log/2026-08-03-http-transport-non-bug.md).
+
+## Superseded
+
+- *(superseded 2026-10-11)* "Updated 2026-08-11 · Status: Active — v1.7.0 released; #18 landed" and "606 tests" — newest tag is v1.8.0 and `main` is `5aff795` with 608 tests reported; see [docs/wiki/log/2026-10-11-mcp-sdk-advisory-fix.md](docs/wiki/log/2026-10-11-mcp-sdk-advisory-fix.md). v1.8.0 itself has no STATE entry yet.
+- *(superseded 2026-10-11)* "Bump mbd to v1.7.0" — the target is now at least v1.8.0, plus a future tag carrying the sdk fix.
