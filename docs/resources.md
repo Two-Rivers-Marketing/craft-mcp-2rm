@@ -399,6 +399,22 @@ Get entry statistics for a section, including counts by status and entry type.
 
 ---
 
+## Convention Resources
+
+Build conventions shipped with the plugin (`docs/conventions/*.md`) are served as resources so agents can read them at runtime.
+
+### craft://conventions
+
+Skimmable index of every convention: `topic`, `title`, `description` and `tags`, parsed from each file's frontmatter.
+
+### craft://conventions/{topic}
+
+Full markdown of one convention. `topic` is the file name without `.md`, for example `craft://conventions/content-builder-standards` (checkable content-builder rules and review checklist), `mcp-content-editing`, `project-config`, `scaffolding`, `content-authoring`, `templates` or `tinker-gotchas`. New files dropped into `docs/conventions/` are picked up automatically.
+
+To point agents at these from a project's `AGENTS.md`, run `php craft mcp/agents-md` ([installation guide](installation.md#point-agents-at-the-conventions)).
+
+---
+
 ## Using Resources
 
 Resources are read through the MCP resources interface. How you access them depends on your AI client:

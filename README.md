@@ -61,6 +61,8 @@ Options:
 - `-e, --environment` - Override detected environment (`ddev` or `native`)
 - `-s, --serverName` - Custom server name (default: `craft-cms`)
 
+To point agents at the shipped build conventions (`craft://conventions/*`, starting with `content-builder-standards`), run `php craft mcp/agents-md`. It writes a marked block into your project's `AGENTS.md` (`--file` to choose another path) and is safe to re-run. See the [Installation Guide](docs/installation.md#point-agents-at-the-conventions).
+
 ### Manual Setup
 
 #### Claude Code

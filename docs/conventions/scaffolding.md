@@ -14,19 +14,23 @@ Top-level blocks (`topLevel: true`) and `columnItem` blocks use two tabs: **Cont
 
 ## Section Options tab structure
 
-Section Options always follows the same order:
+Section Options always follows the same order (CBS-25 in `content-builder-standards.md`):
 
 1. **Properties** heading element (visual separator)
-2. `sectionProperties` — layout and spacing
-3. `backgroundProperties` — background color or image
-4. `customCss` (when present) — per-section CSS overrides
-5. `extraClasses` — additional CSS classes
+2. `sectionProperties` — Section Properties: layout and spacing
+3. `backgroundProperties` — Background Properties: background color or image
+4. Drafting Grid (optional, site field)
+5. Section Style (optional, site field; only where a real variant exists)
+6. `customCss` (when present) — Custom CSS: per-section overrides
+7. `extraClasses` — Extra Classes: additional CSS classes
 
-These are shared presentation fields. They never carry content meaning.
+Drafting Grid and Section Style exist only on sites that define them; skip an absent slot, keep the rest in order. These are shared presentation fields. They never carry content meaning.
 
-## No headline fields on structured content blocks
+## Headings: compose by default
 
-Blocks in the **Structured Content** group (`entryFeed`, `entryListing`, etc.) do not receive `headline` or `text` fields. When a structured block needs introductory text, place a `multiColumn` block before it in the page sequence. This keeps structured blocks focused on their data concern — querying, filtering, and displaying entries — without mixing in freeform copy.
+A section heading is composed by default: place a `multiColumn` block (column → text module) before the block it introduces. That gives a similar result every time, so most blocks, including those in the **Structured Content** group (`entryFeed`, `entryListing`, etc.), need no heading field and stay focused on their data concern.
+
+Add a plain-text heading field only when the UI needs a specific headline or a single line of text — a section-head row (an H2 with a directional link), tab navigation, a ticker title. A heading that belongs to a block's own copy, such as a hero H1 followed by text, goes in that block's WYSIWYG, not in a separate heading field. Plain-text fields for labels that are not headings (card label overrides, disclosure-row labels, aria labels) are fine. See P-5 and CBS-07 in `content-builder-standards.md`.
 
 ## When the split does not apply
 
