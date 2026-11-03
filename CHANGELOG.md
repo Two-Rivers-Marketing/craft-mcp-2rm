@@ -7,8 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Security
-- Upgraded `mcp/sdk` from `^0.6` to `^0.7.1`. Every `0.6.x` release is covered by a high-severity advisory (PKSA-p9gd-j6gr-6f9t / CVE-2026-53965, affecting `>=0.5.0,<0.7.1`), so Composer's default security block refused to install the plugin
+## [1.9.0] - 2026-11-03
 
 ### Added
 - `docs/conventions/content-builder-standards.md`: checkable rules (CBS-01 to CBS-55), principles, known tool pitfalls and a review checklist for the Neo content builder. Served as `craft://conventions/content-builder-standards`
@@ -16,11 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP server instructions point agents to `craft://conventions/content-builder-standards` before content-builder work
 
 ### Changed
-- The server keeps loading tools, prompts, and resources at build time (`setLazyLoading(false)`): SDK 0.7 made loading lazy by default, which would move a registration failure from server startup to the first request
-- Inherited from SDK 0.7: a single stdio message or HTTP request body larger than 4 MiB is now rejected, and a malformed `Mcp-Session-Id` header returns `400`
 - `mcp-content-editing.md`: corrected the Neo write recipe. All four write paths persist nested Matrix data when the payload is well-shaped; documents the real hazards (`update_neo_block` replaces values wholesale, five malformed shapes fail silently, `get_entry` returns block IDs only) and the four-part write rule
 - `project-config.md`: never hand-edit project config YAML; review gate is a no-op `apply` and clean `diff` on a fresh checkout; new section on Neo order DB-vs-YAML drift and the `project-config/apply --force` fix
 - `scaffolding.md` and `content-authoring.md`: headings are composed by default, with a plain-text heading field only when the UI needs one; Section Options order aligned with CBS-25
+
+## [1.8.1] - 2026-10-12
+
+### Security
+- Upgraded `mcp/sdk` from `^0.6` to `^0.7.1`. Every `0.6.x` release is covered by a high-severity advisory (PKSA-p9gd-j6gr-6f9t / CVE-2026-53965, affecting `>=0.5.0,<0.7.1`), so Composer's default security block refused to install the plugin
+
+### Changed
+- The server keeps loading tools, prompts, and resources at build time (`setLazyLoading(false)`): SDK 0.7 made loading lazy by default, which would move a registration failure from server startup to the first request
+- Inherited from SDK 0.7: a single stdio message or HTTP request body larger than 4 MiB is now rejected, and a malformed `Mcp-Session-Id` header returns `400`
 
 ## [1.3.0] - 2026-07-07
 
