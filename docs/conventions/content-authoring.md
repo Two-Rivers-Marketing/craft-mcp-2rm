@@ -14,7 +14,7 @@ Pages are built from a sequence of top-level Neo blocks in the `contentBuilder` 
 
 ## Text before structured content
 
-When a structured content block (`entryFeed`, `entryListing`) needs a heading or introductory text, place a `multiColumn` block before it containing that text. Structured blocks do not carry headline fields — this is by design (see the scaffolding convention). The multiColumn + structured block pair is the standard pattern for titled listing sections.
+When a structured content block (`entryFeed`, `entryListing`) needs a heading or introductory text, place a `multiColumn` block before it containing that text (column → text module). Composing the heading is the default: it gives a similar result every time and needs no heading field on the structured block. A structured block carries a plain-text heading field only when the UI needs a specific headline or a single line of text, such as a section-head row, tab navigation or a ticker title (see the scaffolding convention and P-5 in `content-builder-standards.md`). The multiColumn + structured block pair is the standard pattern for titled listing sections.
 
 ## entryFeed vs. entryListing
 
@@ -38,7 +38,7 @@ Auto is the default for most feeds. Cherry pick is for editorial curation where 
 
 ## Section properties usage
 
-Every top-level block carries `sectionProperties` (layout/spacing), `backgroundProperties` (background color/image), and `extraClasses`. These control the section wrapper, not the block's content. Use alternating backgrounds and spacing to create visual rhythm between sections. The fields live in the Section Options tab, separate from content.
+Every top-level block carries `sectionProperties` (layout/spacing), `backgroundProperties` (background color/image), and `extraClasses`. These control the section wrapper, not the block's content. Use alternating backgrounds and spacing to create visual rhythm between sections. The fields live in the Section Options tab, separate from content, in a fixed order: Properties heading, Section Properties, Background Properties, Drafting Grid, Section Style, Custom CSS, Extra Classes (Drafting Grid and Section Style are optional site fields; see CBS-25 in `content-builder-standards.md`).
 
 ## Block templates
 

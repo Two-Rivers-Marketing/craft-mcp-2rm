@@ -153,6 +153,7 @@ Pages on 2RM sites are entries whose primary content lives in a Neo field called
 ## Build Conventions
 
 Build conventions are available as MCP resources under craft://conventions/*. Each has OKF frontmatter (type, description, tags). Before making structural changes to the content model, list conventions and read those relevant to your task.
+Before any content-builder work (block types, block templates, Section Options, Neo content writes), read craft://conventions/content-builder-standards.
 
 ## Available Capabilities
 

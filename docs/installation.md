@@ -111,6 +111,28 @@ php craft mcp/install --interactive=0
 
 The wizard handles all the details: creating directories, setting correct paths for your environment, and warning you if a server with the same name already exists.
 
+### Point Agents at the Conventions
+
+The plugin ships build conventions as MCP resources (`craft://conventions/*`). To tell agents about them from your project's `AGENTS.md`, run:
+
+```bash
+php craft mcp/agents-md
+```
+
+The command writes a short block between `<!-- craft-mcp:conventions:start -->` and `<!-- craft-mcp:conventions:end -->`. Re-running replaces the block in place and never duplicates it. The file is created if it doesn't exist. It's never run automatically, including on plugin install, so it never touches a server.
+
+| Option | Description |
+|--------|-------------|
+| `--file` | Path to the file to update (default: `AGENTS.md` in the project root, the directory holding `.ddev` or `.git`, or the Craft root if neither is found) |
+
+```bash
+# Update the default AGENTS.md
+php craft mcp/agents-md
+
+# Update a different file
+php craft mcp/agents-md --file=/path/to/AGENTS.md
+```
+
 ### Manual Setup
 
 If you prefer to configure manually or need to understand the configuration format, follow the instructions below for your specific client.
