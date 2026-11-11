@@ -1,10 +1,10 @@
 # Configuration
 
-Craft MCP is configured through a standard Craft config file at `config/mcp.php`. This guide covers all available options, environment variable support, and security best practices.
+Craft MCP is configured through a standard Craft config file at `config/mcp-2rm.php`. This guide covers all available options, environment variable support, and security best practices.
 
 ## Basic Configuration
 
-At minimum, you need to enable the MCP server. Create `config/mcp.php` in your Craft project:
+At minimum, you need to enable the MCP server. Create `config/mcp-2rm.php` in your Craft project:
 
 ```php
 <?php

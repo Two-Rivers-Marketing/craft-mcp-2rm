@@ -38,7 +38,7 @@ class McpTools {
 
             return [
                 'name' => $plugin !== null ? $plugin->name : 'Craft MCP',
-                'handle' => $plugin !== null ? $plugin->handle : 'mcp',
+                'handle' => $plugin !== null ? $plugin->handle : Mcp::HANDLE,
                 'version' => $plugin !== null ? $plugin->version : 'unknown',
                 'schemaVersion' => $plugin !== null ? $plugin->schemaVersion : 'unknown',
                 'status' => [

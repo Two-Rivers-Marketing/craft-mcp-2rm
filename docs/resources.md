@@ -278,7 +278,7 @@ Get information about all installed plugins.
       "developer": "Ether Creative"
     },
     {
-      "handle": "mcp",
+      "handle": "mcp-2rm",
       "name": "Craft MCP",
       "version": "1.0.1",
       "enabled": true,
@@ -411,7 +411,7 @@ Skimmable index of every convention: `topic`, `title`, `description` and `tags`,
 
 Full markdown of one convention. `topic` is the file name without `.md`, for example `craft://conventions/content-builder-standards` (checkable content-builder rules and review checklist), `mcp-content-editing`, `project-config`, `scaffolding`, `content-authoring`, `templates` or `tinker-gotchas`. New files dropped into `docs/conventions/` are picked up automatically.
 
-To point agents at these from a project's `AGENTS.md`, run `php craft mcp/agents-md` ([installation guide](installation.md#point-agents-at-the-conventions)).
+To point agents at these from a project's `AGENTS.md`, run `php craft mcp-2rm/agents-md` ([installation guide](installation.md#point-agents-at-the-conventions)).
 
 ---
 

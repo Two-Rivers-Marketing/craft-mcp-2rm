@@ -25,7 +25,7 @@ composer require 2rm/craft-mcp
 After Composer finishes downloading the package, install the plugin through Craft's CLI:
 
 ```bash
-php craft plugin/install mcp
+php craft plugin/install mcp-2rm
 ```
 
 ### Local Development
@@ -40,7 +40,7 @@ composer config repositories.craft-mcp path ./plugins/craft-mcp
 composer require 2rm/craft-mcp:@dev
 
 # Install the plugin in Craft
-php craft plugin/install mcp
+php craft plugin/install mcp-2rm
 ```
 
 This approach allows you to make changes to the plugin code and see them reflected immediately without re-publishing to Packagist.
@@ -53,11 +53,31 @@ To confirm the plugin was installed successfully, run:
 php craft plugin/list
 ```
 
-You should see `mcp` in the list with status `Installed`. If the plugin appears but shows a different status, you may need to enable it through the Craft control panel or by running `php craft plugin/enable mcp`.
+You should see `mcp-2rm` in the list with status `Installed`. If the plugin appears but shows a different status, you may need to enable it through the Craft control panel or by running `php craft plugin/enable mcp-2rm`.
+
+## Upgrading from 1.x
+
+2.0.0 renames the plugin handle from `mcp` to `mcp-2rm`. Craft 5.12 uses `mcp` for its native MCP server (the `mcp/*` routes and `config/mcp.php`), so the old handle blocked it. 2.0.0 also accepts `mcp/sdk` 0.8.1 and 0.9.x, which Craft 5.12.0.1 and 5.12.1 require.
+
+On the environment where you make project config changes (usually local):
+
+```bash
+composer require 2rm/craft-mcp:^2.0 -W      # add craftcms/cms:^5.12 to upgrade Craft in the same step
+mv config/mcp.php config/mcp-2rm.php        # skip if config/mcp.php has no Craft MCP (2RM) settings
+php craft plugin/install mcp-2rm
+```
+
+Installing `mcp-2rm` removes the old `mcp` install record from the database and project config, unless another package still provides an `mcp` plugin. Commit the project config change; other environments pick it up through `php craft up` / `project-config/apply`.
+
+- **Config file.** Until you rename it, the plugin still reads its settings from `config/mcp.php` and logs a deprecation warning. Rename it anyway: on Craft 5.12+ that file belongs to Craft's own MCP server.
+- **Console commands** move with the handle: `php craft mcp-2rm/install` and `php craft mcp-2rm/agents-md`. `php craft mcp/serve` is now Craft's native server.
+- **HTTP transport** (devMode only) moves from `/mcp` to `/mcp-2rm`.
+- **MCP client configs** need no change: `vendor/2rm/craft-mcp/bin/mcp-server` keeps its path.
+- If Craft still lists a missing `mcp` plugin, remove it with `php craft plugin/uninstall mcp --force`.
 
 ## Enable the MCP Server
 
-By default, the MCP server is disabled for security. Create a configuration file at `config/mcp.php` to enable it:
+By default, the MCP server is disabled for security. Create a configuration file at `config/mcp-2rm.php` to enable it:
 
 ```php
 <?php
@@ -78,7 +98,7 @@ Once the plugin is installed and configured, you'll need to tell your AI assista
 The easiest way to configure your MCP clients is using the built-in installation wizard:
 
 ```bash
-php craft mcp/install
+php craft mcp-2rm/install
 ```
 
 The wizard will:
@@ -97,16 +117,16 @@ The wizard will:
 
 ```bash
 # Interactive wizard with auto-detection
-php craft mcp/install
+php craft mcp-2rm/install
 
 # Force DDEV environment
-php craft mcp/install --environment=ddev
+php craft mcp-2rm/install --environment=ddev
 
 # Use a custom server name
-php craft mcp/install --serverName=my-craft-site
+php craft mcp-2rm/install --serverName=my-craft-site
 
 # Non-interactive mode (use defaults)
-php craft mcp/install --interactive=0
+php craft mcp-2rm/install --interactive=0
 ```
 
 The wizard handles all the details: creating directories, setting correct paths for your environment, and warning you if a server with the same name already exists.
@@ -116,7 +136,7 @@ The wizard handles all the details: creating directories, setting correct paths 
 The plugin ships build conventions as MCP resources (`craft://conventions/*`). To tell agents about them from your project's `AGENTS.md`, run:
 
 ```bash
-php craft mcp/agents-md
+php craft mcp-2rm/agents-md
 ```
 
 The command writes a short block between `<!-- craft-mcp:conventions:start -->` and `<!-- craft-mcp:conventions:end -->`. Re-running replaces the block in place and never duplicates it. The file is created if it doesn't exist. It's never run automatically, including on plugin install, so it never touches a server.
@@ -127,10 +147,10 @@ The command writes a short block between `<!-- craft-mcp:conventions:start -->` 
 
 ```bash
 # Update the default AGENTS.md
-php craft mcp/agents-md
+php craft mcp-2rm/agents-md
 
 # Update a different file
-php craft mcp/agents-md --file=/path/to/AGENTS.md
+php craft mcp-2rm/agents-md --file=/path/to/AGENTS.md
 ```
 
 ### Manual Setup
@@ -264,7 +284,7 @@ Replace `/usr/bin/php` with the actual path to your PHP installation (find it by
 If the MCP server fails to start, check the following:
 
 1. **Plugin is enabled**: Run `php craft plugin/list` and verify the MCP plugin shows as `Installed`
-2. **Configuration exists**: Ensure `config/mcp.php` exists and contains `'enabled' => true`
+2. **Configuration exists**: Ensure `config/mcp-2rm.php` exists and contains `'enabled' => true`
 3. **PHP path is correct**: For Claude Desktop, verify your absolute paths are correct using `which php` or `which ddev`
 4. **DDEV is running**: If using DDEV, ensure your containers are up with `ddev start`
 

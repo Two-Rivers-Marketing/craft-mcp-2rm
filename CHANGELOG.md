@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-11
+
+Upgrade steps: [docs/installation.md#upgrading-from-1x](docs/installation.md#upgrading-from-1x).
+
+### Changed
+- **Breaking:** the plugin handle is now `mcp-2rm` (was `mcp`). Craft 5.12 uses `mcp` for its native MCP server; with both on one site, the plugin's `mcp` module would have taken over Craft's `mcp/*` routes and `php craft mcp/serve`
+- **Breaking:** settings are read from `config/mcp-2rm.php`. A 1.x `config/mcp.php` that sets this plugin's settings is still read, with a deprecation warning, so upgrading doesn't drop a site's restrictions
+- **Breaking:** console commands are `php craft mcp-2rm/install` and `php craft mcp-2rm/agents-md`; the devMode HTTP transport is served at `/mcp-2rm`
+- `mcp/sdk` constraint is `~0.8.1 || ~0.9.0` (was `^0.7.1`), so the plugin installs alongside Craft 5.12.0.1 (`mcp/sdk 0.8.1`) and 5.12.1 (`~0.9.0`). Earlier Craft 5 versions get SDK 0.9. SDK 0.10 is not supported yet: it renames the SDK's namespaces
+
+### Added
+- Installing `mcp-2rm` removes the install record left by the old `mcp` handle (database row, migration history, project config), unless another package still provides an `mcp` plugin. Skipped while project config is being applied
+- `Mcp::HANDLE` and `Mcp::LEGACY_HANDLE` constants
+
 ## [1.9.0] - 2026-11-03
 
 ### Added

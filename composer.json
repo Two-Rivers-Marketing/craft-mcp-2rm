@@ -34,7 +34,7 @@
     "require": {
         "php": "^8.4",
         "craftcms/cms": "^5.0",
-        "mcp/sdk": "^0.7.1",
+        "mcp/sdk": "~0.8.1 || ~0.9.0",
         "psy/psysh": "^0.12",
         "symfony/finder": "^6.4 || ^7.3 || ^8.0"
     },
@@ -57,7 +57,7 @@
         }
     },
     "extra": {
-        "handle": "mcp",
+        "handle": "mcp-2rm",
         "name": "Craft MCP",
         "developer": "2RM",
         "documentationUrl": "https://github.com/Two-Rivers-Marketing/craft-mcp-2rm",
