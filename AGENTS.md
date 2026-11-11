@@ -4,7 +4,7 @@ Craft CMS 5 MCP plugin for AI assistants working with Craft sites; package `2rm/
 ## Run it
 - In this worker checkout: PHP `^8.4`, then `composer install`; requirements and scripts: [composer.json](composer.json).
 - Live use needs a separate Craft site with this worker copy installed beneath its root; `bin/mcp-server` finds `bootstrap.php` and `craft` by walking its parent directories ([bootstrap](bin/mcp-server)).
-- From that site's root: `php craft plugin/install mcp`, enable in `config/mcp.php`, then `php vendor/2rm/craft-mcp/bin/mcp-server` ([installation](docs/installation.md), [settings](src/models/Settings.php)).
+- From that site's root: `php craft plugin/install mcp-2rm`, enable in `config/mcp-2rm.php`, then `php vendor/2rm/craft-mcp/bin/mcp-server` ([installation](docs/installation.md), [settings](src/models/Settings.php)).
 - No plugin-owned DDEV project is checked in; a consuming site's DDEV runs `ddev exec php vendor/2rm/craft-mcp/bin/mcp-server` ([entry point](bin/mcp-server)).
 - Restart your own long-running server after code changes with `kill -HUP <server-pid>`; `reload_mcp` handles plugin discovery, not source reloads ([transport](docs/wiki/architecture/mcp-transport.md)).
 
@@ -23,7 +23,7 @@ Craft CMS 5 MCP plugin for AI assistants working with Craft sites; package `2rm/
 ## Access
 - PHP/Composer checks require no project credential variables ([composer.json](composer.json), [phpunit.xml](phpunit.xml)); no deploy `user@host` is defined in [.github/workflows/](.github/workflows/).
 - Site runtime uses the consuming site's bootstrap/environment, including `CRAFT_ENVIRONMENT` ([bin/mcp-server](bin/mcp-server)); get site access and environment configuration from its owner ([installation](docs/installation.md)).
-- Optional HTTP access needs `MCP_HTTP_TOKEN` and Craft dev mode ([controller](src/controllers/McpController.php)); configuration examples use `MCP_ENABLED` / `MCP_DANGEROUS_TOOLS` only when wired in `config/mcp.php` ([configuration](docs/configuration.md)).
+- Optional HTTP access needs `MCP_HTTP_TOKEN` and Craft dev mode ([controller](src/controllers/McpController.php)); configuration examples use `MCP_ENABLED` / `MCP_DANGEROUS_TOOLS` only when wired in `config/mcp-2rm.php` ([configuration](docs/configuration.md)).
 - GitHub release automation uses Actions-provided `GITHUB_TOKEN` with `contents: write`; repository owners control release permissions ([release.yml](.github/workflows/release.yml)).
 
 ## Never

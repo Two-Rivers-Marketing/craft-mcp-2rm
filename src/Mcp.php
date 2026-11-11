@@ -31,6 +31,17 @@ use yii\base\Event;
  */
 class Mcp extends BasePlugin {
     /**
+     * Plugin handle. Was `mcp` before 2.0.0; Craft 5.12 claimed that name for
+     * its native MCP server (`mcp/*` routes, `config/mcp.php`).
+     */
+    public const HANDLE = 'mcp-2rm';
+
+    /**
+     * Pre-2.0.0 handle, still checked for an old config file and a stale install record.
+     */
+    public const LEGACY_HANDLE = 'mcp';
+
+    /**
      * Event fired to allow plugins to register MCP tools.
      */
     public const EVENT_REGISTER_TOOLS = 'registerTools';
@@ -111,13 +122,47 @@ class Mcp extends BasePlugin {
             UrlManager::class,
             UrlManager::EVENT_REGISTER_SITE_URL_RULES,
             static function (RegisterUrlRulesEvent $event): void {
-                $event->rules['mcp'] = 'mcp/mcp/handle';
+                $event->rules[self::HANDLE] = self::HANDLE . '/mcp/handle';
             },
         );
     }
 
     protected function createSettingsModel(): ?Model {
         return new Settings();
+    }
+
+    #[Override]
+    protected function afterInstall(): void {
+        parent::afterInstall();
+
+        $this->removeLegacyInstall();
+    }
+
+    /**
+     * Drop the install record left by the pre-2.0.0 `mcp` handle, so Craft
+     * stops listing it as a missing plugin. Skipped while project config is
+     * being applied (the incoming YAML already carries the removal) and when
+     * another package still provides an `mcp` plugin, e.g. upstream
+     * stimmt/craft-mcp.
+     */
+    private function removeLegacyInstall(): void {
+        $plugins = Craft::$app->getPlugins();
+        $projectConfig = Craft::$app->getProjectConfig();
+
+        if ($projectConfig->getIsApplyingExternalChanges()) {
+            return;
+        }
+
+        if ($plugins->getComposerPluginInfo(self::LEGACY_HANDLE) !== null) {
+            return;
+        }
+
+        if (!$plugins->isPluginInstalled(self::LEGACY_HANDLE) && $projectConfig->get('plugins.' . self::LEGACY_HANDLE) === null) {
+            return;
+        }
+
+        $plugins->uninstallPlugin(self::LEGACY_HANDLE, true);
+        Craft::info('Removed the install record of the pre-2.0.0 `mcp` handle.', __METHOD__);
     }
 
     /**
@@ -220,15 +265,17 @@ class Mcp extends BasePlugin {
     }
 
     /**
-     * Apply config/mcp.php overrides to settings.
+     * Apply config/mcp-2rm.php overrides to settings, falling back to the
+     * pre-2.0.0 config/mcp.php when only that one exists.
      */
     private static function applyConfigOverrides(Settings $settings): Settings {
         /** @var Path $pathService */
         $pathService = Craft::$app->getPath();
-        $configPath = $pathService->getConfigPath() . '/mcp.php';
+        $configDir = $pathService->getConfigPath();
+        $configPath = $configDir . '/' . self::HANDLE . '.php';
 
         if (!file_exists($configPath)) {
-            return self::applyProductionDefaults($settings);
+            return self::applyLegacyConfigOverrides($settings, $configDir . '/' . self::LEGACY_HANDLE . '.php');
         }
 
         $config = require $configPath;
@@ -236,6 +283,42 @@ class Mcp extends BasePlugin {
             return $settings;
         }
 
+        return self::applyConfigArray($settings, $config);
+    }
+
+    /**
+     * Honour a pre-2.0.0 config/mcp.php so upgrading doesn't silently drop a
+     * site's restrictions (disabled tools, dangerous tools off). Only used when
+     * the file sets at least one of this plugin's settings: on Craft 5.12+ the
+     * file belongs to Craft's own MCP server.
+     */
+    private static function applyLegacyConfigOverrides(Settings $settings, string $legacyPath): Settings {
+        if (!file_exists($legacyPath)) {
+            return self::applyProductionDefaults($settings);
+        }
+
+        $config = require $legacyPath;
+        if (!is_array($config)) {
+            return self::applyProductionDefaults($settings);
+        }
+
+        $ownKeys = array_filter(array_keys($config), static fn (int|string $key): bool => is_string($key) && property_exists($settings, $key));
+        if ($ownKeys === []) {
+            return self::applyProductionDefaults($settings);
+        }
+
+        Craft::$app->getDeprecator()->log(
+            'mcp-2rm:config/mcp.php',
+            'Craft MCP (2RM) settings in `config/mcp.php` are deprecated. Rename the file to `config/' . self::HANDLE . '.php`: Craft 5.12+ reads `config/mcp.php` for its own MCP server.',
+        );
+
+        return self::applyConfigArray($settings, $config);
+    }
+
+    /**
+     * @param array<mixed> $config
+     */
+    private static function applyConfigArray(Settings $settings, array $config): Settings {
         foreach ($config as $key => $value) {
             if (property_exists($settings, $key)) {
                 $settings->$key = $value;

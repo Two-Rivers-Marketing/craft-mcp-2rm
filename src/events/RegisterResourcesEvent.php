@@ -44,7 +44,7 @@ class RegisterResourcesEvent extends Event {
     /**
      * Reserved sources that external plugins cannot use.
      */
-    private const array RESERVED_SOURCES = ['core', 'craft-mcp', 'mcp'];
+    private const array RESERVED_SOURCES = ['core', 'craft-mcp', 'mcp', 'mcp-2rm'];
 
     /**
      * Registered resource classes grouped by source.

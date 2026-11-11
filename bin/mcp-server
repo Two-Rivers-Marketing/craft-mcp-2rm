@@ -72,13 +72,13 @@ use twoRivers\craft\Mcp\support\SignalHandler;
 // Validate plugin is available and enabled
 $plugin = Mcp::getInstance();
 if ($plugin === null) {
-    fwrite(STDERR, "Error: Craft MCP plugin is not installed. Run: php craft plugin/install mcp\n");
+    fwrite(STDERR, "Error: Craft MCP plugin is not installed. Run: php craft plugin/install mcp-2rm\n");
     exit(1);
 }
 
 if (!Mcp::isEnabled()) {
     fwrite(STDERR, "Error: Craft MCP is disabled.\n");
-    fwrite(STDERR, "To enable, add to config/mcp.php:\n");
+    fwrite(STDERR, "To enable, add to config/mcp-2rm.php:\n");
     fwrite(STDERR, "  return ['enabled' => true];\n");
     exit(1);
 }

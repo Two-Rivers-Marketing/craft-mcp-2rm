@@ -21,7 +21,7 @@ get_mcp_info
 ```json
 {
   "name": "Craft MCP",
-  "handle": "mcp",
+  "handle": "mcp-2rm",
   "version": "1.0.0",
   "schemaVersion": "1.0.0",
   "status": {

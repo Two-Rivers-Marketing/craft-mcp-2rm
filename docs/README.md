@@ -47,10 +47,10 @@ Install via Composer, from the private VCS repository:
 ```bash
 composer config repositories.craft-mcp vcs https://github.com/Two-Rivers-Marketing/craft-mcp-2rm
 composer require 2rm/craft-mcp
-php craft plugin/install mcp
+php craft plugin/install mcp-2rm
 ```
 
-Enable in `config/mcp.php`:
+Enable in `config/mcp-2rm.php`:
 
 ```php
 <?php

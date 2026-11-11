@@ -27,10 +27,12 @@ composer require 2rm/craft-mcp
 Next, install the plugin through Craft's CLI:
 
 ```bash
-php craft plugin/install mcp
+php craft plugin/install mcp-2rm
 ```
 
-Then create a configuration file at `config/mcp.php` to enable the MCP server. By default, the server is disabled in production environments for security:
+> Upgrading from 1.x? 2.0.0 renamed the handle from `mcp` to `mcp-2rm` so the plugin can run alongside Craft 5.12's native MCP server. See [Upgrading from 1.x](docs/installation.md#upgrading-from-1x).
+
+Then create a configuration file at `config/mcp-2rm.php` to enable the MCP server. By default, the server is disabled in production environments for security:
 
 ```php
 <?php
@@ -49,7 +51,7 @@ Once Craft MCP has been installed, you're ready to connect Claude Code, Cursor, 
 Run the interactive configuration wizard to automatically generate config files for your MCP clients:
 
 ```bash
-php craft mcp/install
+php craft mcp-2rm/install
 ```
 
 The wizard will:
@@ -61,7 +63,7 @@ Options:
 - `-e, --environment` - Override detected environment (`ddev` or `native`)
 - `-s, --serverName` - Custom server name (default: `craft-cms`)
 
-To point agents at the shipped build conventions (`craft://conventions/*`, starting with `content-builder-standards`), run `php craft mcp/agents-md`. It writes a marked block into your project's `AGENTS.md` (`--file` to choose another path) and is safe to re-run. See the [Installation Guide](docs/installation.md#point-agents-at-the-conventions).
+To point agents at the shipped build conventions (`craft://conventions/*`, starting with `content-builder-standards`), run `php craft mcp-2rm/agents-md`. It writes a marked block into your project's `AGENTS.md` (`--file` to choose another path) and is safe to re-run. See the [Installation Guide](docs/installation.md#point-agents-at-the-conventions).
 
 ### Manual Setup
 

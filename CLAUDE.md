@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Craft CMS 5 plugin: an MCP server exposing a Craft install to AI assistants. 2RM fork of `stimmt/craft-mcp`. Package `2rm/craft-mcp`, handle `mcp`, namespace `twoRivers\craft\Mcp` (sub-namespaces lowercase: `tools`, `support`, `services`, `prompts`, `resources`, `models`, `enums`, `events`, `contracts`, `installer`).
+Craft CMS 5 plugin: an MCP server exposing a Craft install to AI assistants. 2RM fork of `stimmt/craft-mcp`. Package `2rm/craft-mcp`, handle `mcp-2rm` (was `mcp` before 2.0.0; Craft 5.12 took that name for its native MCP server), namespace `twoRivers\craft\Mcp` (sub-namespaces lowercase: `tools`, `support`, `services`, `prompts`, `resources`, `models`, `enums`, `events`, `contracts`, `installer`).
 
 PHP 8.3+, `declare(strict_types=1)` in every `src/` file.
 
