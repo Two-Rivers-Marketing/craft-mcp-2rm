@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ad433f852b6806924fbb0b7f20849685",
+    "content-hash": "ef2414cc51564135137015e0fd43d667",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -10534,11 +10534,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.2.7",
+            "version": "2.3.5",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/692db47b9dddb0487934e5236e77d48594aef921",
-                "reference": "692db47b9dddb0487934e5236e77d48594aef921",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/645a1bd6bead15fc1b8474137467961d0fa30a79",
+                "reference": "645a1bd6bead15fc1b8474137467961d0fa30a79",
                 "shasum": ""
             },
             "require": {
@@ -10594,8 +10594,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-29T17:39:32+00:00",
-            "published-time": "2026-07-29T17:39:47+00:00"
+            "time": "2026-11-03T12:14:22+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -11034,30 +11033,27 @@
         },
         {
             "name": "rector/rector",
-            "version": "2.5.8",
+            "version": "2.8.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/rectorphp/rector.git",
-                "reference": "861c77fd2a6d45317a401f4e0b617f947e8b6f96"
+                "reference": "55acbd956d7e3907f7d21aab54edd68a310609e6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/rectorphp/rector/zipball/861c77fd2a6d45317a401f4e0b617f947e8b6f96",
-                "reference": "861c77fd2a6d45317a401f4e0b617f947e8b6f96",
+                "url": "https://api.github.com/repos/rectorphp/rector/zipball/55acbd956d7e3907f7d21aab54edd68a310609e6",
+                "reference": "55acbd956d7e3907f7d21aab54edd68a310609e6",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.4|^8.0",
-                "phpstan/phpstan": "^2.2.6"
+                "phpstan/phpstan": "^2.3.5"
             },
             "conflict": {
                 "rector/rector-doctrine": "*",
                 "rector/rector-downgrade-php": "*",
                 "rector/rector-phpunit": "*",
                 "rector/rector-symfony": "*"
-            },
-            "suggest": {
-                "ext-dom": "To manipulate phpunit.xml via the custom-rule command"
             },
             "bin": [
                 "bin/rector"
@@ -11082,7 +11078,7 @@
             ],
             "support": {
                 "issues": "https://github.com/rectorphp/rector/issues",
-                "source": "https://github.com/rectorphp/rector/tree/2.5.8"
+                "source": "https://github.com/rectorphp/rector/tree/2.8.4"
             },
             "funding": [
                 {
@@ -11090,7 +11086,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-27T06:19:16+00:00"
+            "time": "2026-11-03T18:48:08+00:00"
         },
         {
             "name": "sanmai/phpstan-rules",
@@ -12328,5 +12324,5 @@
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.11.0"
+    "plugin-api-version": "2.9.0"
 }
