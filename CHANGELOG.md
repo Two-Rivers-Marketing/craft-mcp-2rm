@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-11
+
+### Security
+- `disabledTools`, `enableDangerousTools`, `disabledPrompts`, `disabledResources` and method conditions are now enforced. Before, only `list_mcp_tools` read them: a disabled or dangerous tool was still listed and callable. The server now registers only what the settings allow, so a refused element is absent from the list responses and calling it fails with `Tool not found`. Applies to stdio and HTTP, and to tools, prompts and resources registered by other plugins. Elements with no definition in the plugin's registries are refused
+- In production, `enableDangerousTools` is `false` unless the config file sets it, as documented. Before, setting only `'enabled' => true` left every dangerous tool on
+
+### Fixed
+- Tools for optional plugins that aren't installed (Commerce, Freeform, Navigation, SEOmatic) are no longer listed
+- `craft://conventions` and `craft://conventions/{topic}` are in the resource registry, so `list_mcp_resources` reports them and `disabledResources` applies to them
+- `disabledResources` accepts a resource template's name or its URI template
+
 ## [2.0.0] - 2026-11-11
 
 Upgrade steps: [docs/installation.md#upgrading-from-1x](docs/installation.md#upgrading-from-1x).
