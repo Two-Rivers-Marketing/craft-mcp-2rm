@@ -9,6 +9,7 @@ use twoRivers\craft\Mcp\events\RegisterResourcesEvent;
 use twoRivers\craft\Mcp\Mcp;
 use twoRivers\craft\Mcp\models\ResourceDefinition;
 use twoRivers\craft\Mcp\resources\ConfigResources;
+use twoRivers\craft\Mcp\resources\ConventionResources;
 use twoRivers\craft\Mcp\resources\EntryResources;
 use twoRivers\craft\Mcp\resources\SchemaResources;
 
@@ -29,6 +30,7 @@ final class ResourceRegistry {
      */
     private const array CORE_RESOURCES = [
         ConfigResources::class,
+        ConventionResources::class,
         EntryResources::class,
         SchemaResources::class,
     ];

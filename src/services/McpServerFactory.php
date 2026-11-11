@@ -17,9 +17,11 @@ use Mcp\Server\Transport\StreamableHttpTransport;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use twoRivers\craft\Mcp\Mcp;
 use twoRivers\craft\Mcp\models\ResourceDefinition;
 use twoRivers\craft\Mcp\support\FileLogger;
+use twoRivers\craft\Mcp\support\GatedDiscoveryLoader;
 use twoRivers\craft\Mcp\support\Psr11ContainerAdapter;
 
 /**
@@ -50,11 +52,15 @@ class McpServerFactory {
                 version: Mcp::getInstance()?->getVersion() ?? '1.0.0',
             )
             ->setInstructions($this->getInstructions())
-            ->setDiscovery(
+            // In place of setDiscovery(): registers only what the site's
+            // settings allow, so disabled and dangerous-off tools are neither
+            // listed nor callable.
+            ->addLoader(new GatedDiscoveryLoader(
                 basePath: dirname(__DIR__),
                 scanDirs: ['tools', 'prompts', 'resources'],
                 excludeDirs: ['vendor', 'support', 'services', 'events', 'models', 'enums', 'attributes', 'completions', 'contracts'],
-            )
+                logger: $this->logger ?? new NullLogger(),
+            ))
             ->setContainer($this->container)
             // SDK 0.7 defers discovery to the first registry read by default.
             // Craft is fully booted before this runs, so load at build time as
@@ -171,6 +177,10 @@ INSTRUCTIONS;
 
     private function registerExternalTools(Builder $builder): void {
         foreach (McpRegistry::tools()->getExternalToolDefinitions() as $def) {
+            if (!GatedDiscoveryLoader::admitsTool($def->name)) {
+                continue;
+            }
+
             $builder->addTool(
                 handler: [$def->class, $def->method],
                 name: $def->name,
@@ -181,6 +191,10 @@ INSTRUCTIONS;
 
     private function registerExternalPrompts(Builder $builder): void {
         foreach (McpRegistry::prompts()->getExternalPromptDefinitions() as $def) {
+            if (!GatedDiscoveryLoader::admitsPrompt($def->name)) {
+                continue;
+            }
+
             $builder->addPrompt(
                 handler: [$def->class, $def->method],
                 name: $def->name,
@@ -191,6 +205,14 @@ INSTRUCTIONS;
 
     private function registerExternalResources(Builder $builder): void {
         foreach (McpRegistry::resources()->getExternalResourceDefinitions() as $def) {
+            $admitted = $def->isTemplate
+                ? GatedDiscoveryLoader::admitsResourceTemplate($def->name, $def->uri)
+                : GatedDiscoveryLoader::admitsResource($def->uri);
+
+            if (!$admitted) {
+                continue;
+            }
+
             $this->registerResource($builder, $def);
         }
     }

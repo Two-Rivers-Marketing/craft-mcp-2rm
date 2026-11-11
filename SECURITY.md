@@ -38,7 +38,7 @@ same shape and are all marked dangerous.
 
 ## Locking it down
 
-In `config/mcp.php`:
+In `config/mcp-2rm.php`:
 
 ```php
 return [
@@ -55,8 +55,12 @@ return [
 
 Notes:
 
-- `enableDangerousTools` defaults to `true`, because the plugin's purpose is content authoring. Set
-  it to `false` for any install where the MCP client should only read.
+- These settings decide what the server registers. A disabled tool, prompt or resource is absent
+  from the list responses and a call to it fails with `Tool not found`. Before 2.0.1 they were only
+  reported by `list_mcp_tools` and never applied.
+- `enableDangerousTools` defaults to `true` outside production, because the plugin's purpose is
+  content authoring. In production it defaults to `false` unless the config file sets it. Set it to
+  `false` for any install where the MCP client should only read.
 - The HTTP transport requires a bearer token in `MCP_HTTP_TOKEN`, compared with `hash_equals`
   ([`src/controllers/McpController.php`](src/controllers/McpController.php)). It is a dev convenience;
   do not enable it in production.

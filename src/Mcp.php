@@ -325,6 +325,12 @@ class Mcp extends BasePlugin {
             }
         }
 
+        // Production keeps dangerous tools off unless the config file turns
+        // them on by name. Enabling the server alone must not enable them.
+        if (self::isProduction() && !array_key_exists('enableDangerousTools', $config)) {
+            $settings->enableDangerousTools = false;
+        }
+
         return $settings;
     }
 
@@ -332,14 +338,16 @@ class Mcp extends BasePlugin {
      * Apply safe defaults when no config file exists.
      */
     private static function applyProductionDefaults(Settings $settings): Settings {
-        $environment = Craft::$app->env ?? getenv('CRAFT_ENVIRONMENT') ?: 'production';
-
-        if ($environment === 'production') {
+        if (self::isProduction()) {
             $settings->enabled = false;
             $settings->enableDangerousTools = false;
         }
 
         return $settings;
+    }
+
+    private static function isProduction(): bool {
+        return (Craft::$app->env ?? getenv('CRAFT_ENVIRONMENT') ?: 'production') === 'production';
     }
 
     /**
