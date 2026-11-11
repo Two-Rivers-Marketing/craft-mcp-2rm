@@ -85,6 +85,6 @@ class AgentsMdController extends Controller {
     private function defaultPath(): string {
         $craftRoot = (string) Craft::getAlias('@root');
 
-        return (new ProjectRootResolver($craftRoot))->resolve() . DIRECTORY_SEPARATOR . 'AGENTS.md';
+        return new ProjectRootResolver($craftRoot)->resolve() . DIRECTORY_SEPARATOR . 'AGENTS.md';
     }
 }
