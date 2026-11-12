@@ -43,7 +43,7 @@ New name = `trm_` + current name. Product docs get the full old→new map (`UPGR
 
 | Tier | Tools | Gate |
 | --- | --- | --- |
-| Read | Neo `describe_content_builder`, `get_block_type`; `list_categories`; `list_globals`, `get_global_set`; Freeform `list_forms`, `get_form`, `list_submissions`, `get_submission`; Navigation `list_navs`, `get_nav`; `get_seo`; Commerce ×6 | `readOnlyHint`; acting user's permission checked in the handler |
+| Read | Neo `describe_content_builder`, `get_block_type`; `list_categories`; `list_globals`, `get_global_set`; Freeform `list_forms`, `get_form`, `list_submissions`, `get_submission`; Navigation `list_navs`, `get_nav`; `get_seo`; Commerce ×6 (admin-only in 3.0, see below) | `readOnlyHint`; acting user's permission checked in the handler |
 | Content write | Neo `create/update/reorder/delete_neo_block`; `update_global_set`; Navigation `create/update/delete_node`; `update_seo`; `delete_submission`, `export_submissions`; Freeform `create/update/delete_form`; `publish_draft` | Acting user's permission checked in the handler; `destructiveHint` on deletes |
 | Project config | `create_block_type`, `create_nav` | `#[RequiresAdminChanges]` |
 | Dev | Database ×4; `get_deprecations`, `explain_query`, `get_environment`, `list_event_handlers`; `get_config`, `read_logs`, `get_last_error`, `list_console_commands`, `list_routes`; GraphQL ×4; backups ×2; `render_template`; `tinker` | `#[RequiresAdmin]`; `readOnlyHint` where true |
@@ -55,6 +55,7 @@ New name = `trm_` + current name. Product docs get the full old→new map (`UPGR
 - **Permission checks live in the handler**, not only at discovery, so the same handler is safe when called from somewhere other than the MCP transport (see "Later" below). Add one `support/Access` helper that takes the acting user from `Craft::$app->getUser()->getIdentity()` and throws `ToolCallException` on refusal.
 - **Element-backed tools** use `Craft::$app->getElements()->canView/canSave/canDelete($element, $user)`, which defers to each element class (Neo blocks to their owner, Freeform submissions and Navigation nodes to their plugins). Neo writes check `canSave` on the top-level owner entry. `publish_draft` checks `canSave` and `canSaveCanonical`, as `ElementsController::actionApplyDraft()` does.
 - **Non-element tools** (Freeform forms, SEOmatic settings, Commerce config reads) use the owning plugin's permission strings through `$user->can()`. Those plugins are not in this repo's `vendor/`; read the permission names from their source on a consuming site before writing the checks. Do not guess them.
+- **Commerce tools are `#[RequiresAdmin]` in 3.0.** Commerce is not installed on the reference site, so its permission names are unread; relax once they are.
 - Do not depend on `craft\mcp\Authorization` or `craft\mcp\McpActor`; they carry no `@since` and are not documented API.
 - **`dangerous` is re-audited.** It currently marks content writes such as `publish_draft` and `delete_form`, which production hides by default. In 3.0 it marks only Dev-tier tools that bypass permissions (`tinker`, `run_query`, `render_template`, `execute_graphql`, `create_backup`). Content writes are governed by user permissions and scopes.
 - **Settings kept:** `enabled`, `disabledTools` (new names), `enableDangerousTools`, `builderFieldHandle`, `templateStubPath`. **Removed:** `httpTransport`, `allowedIps`, `logLevel`, `disabledPrompts`, `disabledResources`. Production no longer turns the plugin off; it defaults `enableDangerousTools` to `false` unless the config file sets it.
@@ -83,14 +84,17 @@ New name = `trm_` + current name. Product docs get the full old→new map (`UPGR
 ## Phases
 
 0. **Spike: done 2026-11-12 on slipnot, stdio only.** Results: [../architecture/craft-native-mcp.md](../architecture/craft-native-mcp.md). Craft's tools read and write Neo trees, so `EntryTools` goes entirely apart from `publish_draft`; plugin classes register unmodified and the discovery gate works; `drafts_apply` does not validate; permission names are recorded for Freeform, Navigation, SEOmatic and Neo. Not covered: HTTP and OAuth scopes, a non-admin user, Commerce.
-1. Foundation: constraints, `Capabilities`, `Gate`, `Access`, wiring in `Mcp::init()`.
-2. Tools: prefix, annotations, access, `dangerous` re-audit, delete overlapping tools.
-3. Remove the server and its support code; rename conventions resources.
-4. Installer, `mcp-2rm/check`, connect-time instructions.
-5. Product docs, conventions, `AGENTS.md` block, `CLAUDE.md`, `UPGRADE.md` with the name map.
-6. Live QA, then tag 3.0.0.
+1. Foundation, additive: constraints, `Capabilities`, `Gate`, wiring in `Mcp::init()`. Issue #57.
+2. Installer writes `craft mcp/serve --user=…`, `mcp-2rm/check`, connect-time instructions. Issue #58.
+3. Remove the plugin's own server and its support code. Issue #59.
+4. Tools: `trm_` prefix, annotations, delete the tools Craft covers, rename conventions resources. Issue #60.
+5. Access: admin tiers, `dangerous` re-audit, `Access` helper and handler checks. Issue #61.
+6. Product docs, conventions, `AGENTS.md` block, `CLAUDE.md`, `UPGRADE.md` with the name map. Issue #62.
+7. Live QA (HTTP, OAuth scopes, a non-admin user), then tag 3.0.0. Not an agent issue.
 
-Before Phase 1 lands on `main`: merge the 2.0.2 security fixes, tag v2.0.2, cut `2.x` from that tag.
+Each issue is blocked by the one before it. The order differs from the first draft of this page: the installer moved ahead of the server removal so nothing depends on `bin/mcp-server` when it is deleted, and access comes after pruning so only kept tools get checks. From Phase 1 until Phase 5 lands, the plugin's tools are served with no permission check, so `main` is not releasable in between.
+
+`2.x` was cut at v2.1.0 on 2026-11-12, before any 3.0 work landed.
 
 ## Later, not in 3.0: chat inside the control panel
 
