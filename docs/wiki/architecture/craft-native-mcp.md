@@ -55,7 +55,7 @@ Commerce is not installed on slipnot; its names are still unread.
 - `EntryTools` can be deleted entirely apart from `publish_draft`: Craft's tools read and write Neo content.
 - Issue #40 (`get_neo_tree`) is mostly answered by `elements_get`. What is left is block type handles in the output and trees over 100 blocks.
 - Issue #39's validation matters less for the native path, which refuses three of the shapes itself.
-- Whether to keep the four Neo content tools is now an open question, recorded in the plan.
+- The four Neo content tools stay in 3.0 for now (operator decision, 2026-11-12), because of the stdio draft crash above; see the plan.
 
 ## Cross-references
 

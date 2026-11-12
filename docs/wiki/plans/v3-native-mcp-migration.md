@@ -98,7 +98,7 @@ The intended follow-on is a chat feature in the Craft control panel that calls t
 
 ## Open questions
 
-- **Keep the four Neo content tools?** Phase 0 showed Craft's `elements_update` creates, edits, reorders and removes Neo blocks through the whole-field `{sortOrder, blocks}` shape. The plugin's tools work one block at a time by position. One case for keeping them: over stdio, Craft's path crashes inside Neo when editing an existing block in a draft of an existing entry. Whether the plugin's `update_neo_block` avoids that crash is untested. Dropping them takes the kept count from 56 to 52.
+- ~~Keep the four Neo content tools?~~ **Decided 2026-11-12 (operator): keep them for now.** Craft's `elements_update` covers the same operations, but over stdio it crashes inside Neo 5.5.13 when editing an existing block in a draft of an existing entry. Revisit once Neo fixes that. Still untested: whether the plugin's `update_neo_block` avoids the crash. The kept count stays 56.
 - Issue #40 (`get_neo_tree`): narrow it to what `elements_get` lacks (block type handles, trees over 100 blocks) or close it.
 - Check HTTP, OAuth scopes and a non-admin user before Phase 6; none were run in Phase 0.
 - Do the 2.x legacy-`mcp`-handle cleanup and `Mcp::LEGACY_HANDLE` stay in 3.0? Default: yes, sites can jump from 1.x.
