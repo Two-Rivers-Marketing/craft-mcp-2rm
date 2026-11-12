@@ -82,7 +82,7 @@ New name = `trm_` + current name. Product docs get the full old→new map (`UPGR
 
 ## Phases
 
-0. **Spike on a 5.12.1 site with Neo and Freeform.** Turn on Craft's server. Check: `elements_get` / `elements_update` on an entry with a Neo field; a class registered from this plugin shows up over stdio and HTTP; `drafts_apply` validation behaviour; the optional plugins' permission names. Outcome decides whether a Neo tree read tool is needed (issue #40) and whether `EntryTools` can go entirely.
+0. **Spike: done 2026-11-12 on slipnot, stdio only.** Results: [../architecture/craft-native-mcp.md](../architecture/craft-native-mcp.md). Craft's tools read and write Neo trees, so `EntryTools` goes entirely apart from `publish_draft`; plugin classes register unmodified and the discovery gate works; `drafts_apply` does not validate; permission names are recorded for Freeform, Navigation, SEOmatic and Neo. Not covered: HTTP and OAuth scopes, a non-admin user, Commerce.
 1. Foundation: constraints, `Capabilities`, `Gate`, `Access`, wiring in `Mcp::init()`.
 2. Tools: prefix, annotations, access, `dangerous` re-audit, delete overlapping tools.
 3. Remove the server and its support code; rename conventions resources.
@@ -98,6 +98,8 @@ The intended follow-on is a chat feature in the Craft control panel that calls t
 
 ## Open questions
 
-- Does Craft's `elements_get` return Neo block trees with field values, IDs only, or nothing? (Phase 0.)
+- **Keep the four Neo content tools?** Phase 0 showed Craft's `elements_update` creates, edits, reorders and removes Neo blocks through the whole-field `{sortOrder, blocks}` shape. The plugin's tools work one block at a time by position. One case for keeping them: over stdio, Craft's path crashes inside Neo when editing an existing block in a draft of an existing entry. Whether the plugin's `update_neo_block` avoids that crash is untested. Dropping them takes the kept count from 56 to 52.
+- Issue #40 (`get_neo_tree`): narrow it to what `elements_get` lacks (block type handles, trees over 100 blocks) or close it.
+- Check HTTP, OAuth scopes and a non-admin user before Phase 6; none were run in Phase 0.
 - Do the 2.x legacy-`mcp`-handle cleanup and `Mcp::LEGACY_HANDLE` stay in 3.0? Default: yes, sites can jump from 1.x.
 - [qa-feature-backlog.md](qa-feature-backlog.md) items that target deleted tools need closing or re-pointing at Craft's equivalents.
