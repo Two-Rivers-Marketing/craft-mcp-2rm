@@ -65,3 +65,67 @@ describe('AgentsMdBlock::apply', function () {
         AgentsMdBlock::apply("# Top\n" . AgentsMdBlock::START . "\nhalf a block\n");
     })->throws(InvalidArgumentException::class);
 });
+
+describe('AgentsMdBlock vendor path', function () {
+    $defaultBlock = implode("\n", [
+        '<!-- craft-mcp:conventions:start -->',
+        '## Craft MCP conventions',
+        '',
+        'Content-builder work (Neo `contentBuilder`, block types, block templates, Section Options, content writes) follows the craft-mcp conventions.',
+        'Read them through the MCP resources `craft://conventions/*` (list `content-builder-standards` first) or from `vendor/2rm/craft-mcp/docs/conventions/`.',
+        '`/code-review` Standards passes check content-builder changes against `content-builder-standards`.',
+        '<!-- craft-mcp:conventions:end -->',
+    ]);
+
+    it('keeps the default block byte-for-byte unchanged', function () use ($defaultBlock) {
+        expect(AgentsMdBlock::render())->toBe($defaultBlock)
+            ->and(AgentsMdBlock::render('vendor'))->toBe($defaultBlock);
+    });
+
+    it('changes only the path line for a custom vendor path', function () use ($defaultBlock) {
+        $default = explode("\n", $defaultBlock);
+        $custom = explode("\n", AgentsMdBlock::render('app/vendor'));
+        $changed = array_keys(array_diff_assoc($custom, $default));
+
+        expect($custom)->toHaveCount(count($default))
+            ->and($changed)->toBe([4])
+            ->and($custom[4])->toContain('`app/vendor/2rm/craft-mcp/docs/conventions/`')
+            ->and($custom[4])->not->toContain('`vendor/2rm');
+    });
+
+    it('trims a trailing slash', function () {
+        expect(AgentsMdBlock::render('app/vendor/'))->toBe(AgentsMdBlock::render('app/vendor'))
+            ->and(AgentsMdBlock::render('vendor/'))->toBe(AgentsMdBlock::render());
+    });
+
+    it('rejects an empty vendor path', function (string $path) {
+        AgentsMdBlock::render($path);
+    })->with(['', '/', '  '])->throws(InvalidArgumentException::class, 'must not be empty');
+
+    it('inserts with a custom path, then replaces in place when the path changes', function () {
+        $inserted = AgentsMdBlock::apply("# Top\n\n## After\n", 'app/vendor');
+
+        expect($inserted)->toBe("# Top\n\n## After\n\n" . AgentsMdBlock::render('app/vendor') . "\n");
+
+        $replaced = AgentsMdBlock::apply($inserted, 'site/vendor');
+
+        expect($replaced)->toBe("# Top\n\n## After\n\n" . AgentsMdBlock::render('site/vendor') . "\n")
+            ->and($replaced)->not->toContain('app/vendor')
+            ->and(substr_count($replaced, AgentsMdBlock::START))->toBe(1);
+    });
+
+    it('is idempotent with a custom path', function () {
+        $once = AgentsMdBlock::apply("# Project\n", 'app/vendor');
+
+        expect(AgentsMdBlock::apply($once, 'app/vendor'))->toBe($once)
+            ->and(AgentsMdBlock::apply($once, 'app/vendor/'))->toBe($once);
+    });
+});
+
+describe('AgentsMdBlock::printable', function () {
+    it('is the block followed by exactly one newline', function () {
+        expect(AgentsMdBlock::printable())->toBe(AgentsMdBlock::render() . "\n")
+            ->and(AgentsMdBlock::printable('app/vendor'))->toBe(AgentsMdBlock::render('app/vendor') . "\n")
+            ->and(AgentsMdBlock::printable())->not->toEndWith("\n\n");
+    });
+});
