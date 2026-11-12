@@ -34,6 +34,7 @@ use twoRivers\craft\Mcp\enums\ToolCategory;
 use twoRivers\craft\Mcp\Mcp;
 use twoRivers\craft\Mcp\support\BlockTypeStub;
 use twoRivers\craft\Mcp\support\FieldMatcher;
+use twoRivers\craft\Mcp\support\NeoSortOrder;
 use twoRivers\craft\Mcp\support\ResolvesNeoBuilderField;
 use twoRivers\craft\Mcp\support\Response;
 use twoRivers\craft\Mcp\support\SafeExecution;
@@ -182,7 +183,7 @@ class NeoScaffoldTools implements ConditionalToolProvider {
         return [
             'name' => $name,
             'handle' => $blockTypeHandle,
-            'sortOrder' => count($field->getBlockTypes()) + 1,
+            'sortOrder' => NeoSortOrder::next($field->getBlockTypes(), $field->getGroups()),
             'topLevel' => $topLevel,
             'childBlockTypes' => $children,
             'attachments' => $attachments,

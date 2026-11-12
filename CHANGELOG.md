@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `php craft mcp-2rm/agents-md --print` writes the conventions block to stdout and touches no file, for projects where the repo-root `AGENTS.md` is outside the Craft container (Craft in a subfolder, DDEV mounting only that folder)
 - `php craft mcp-2rm/agents-md --vendor-path=<path>` sets the vendor directory the block points at, as seen from the `AGENTS.md` file (default `vendor`; e.g. `--vendor-path=app/vendor` gives `app/vendor/2rm/craft-mcp/docs/conventions/`). Works with `--print` and when writing a file. An empty value is rejected
 
+### Fixed
+- `create_block_type` picks the new Neo block type's `sortOrder` from the highest slot held by any block type or block-type group on the field, plus one. Before, it used the block type count plus one, which ignored groups and gaps, so on a field with groups the new block type could share a `sortOrder` with a group or another block type. Neo then dropped one of them from `neo.orders.<fieldUid>`, and `project-config/apply` on another environment failed with `Undefined array key "sortOrder"`
+
 ## [2.0.2] - 2026-11-12
 
 ### Security
