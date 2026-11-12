@@ -319,7 +319,7 @@ class EntryTools {
         description: 'Apply a draft to its canonical entry and delete the draft. '
             . 'The draft is validated as live content first (required fields, as the control panel does); if it fails, nothing is published and the errors are returned per field. '
             . 'Requires draftId — the draft id returned by create_draft or list_drafts, NOT the entry id. '
-            . 'Pass dryRun: true to preview the draft that would be published without applying it.',
+            . 'Pass dryRun: true to preview the draft that would be published without applying it; a dry run does not validate, so it cannot predict a refused publish.',
     )]
     #[McpToolMeta(category: ToolCategory::CONTENT, dangerous: true)]
     public function publishDraft(
@@ -402,6 +402,7 @@ class EntryTools {
      * will be live, with required fields propagated for a new entry, and across
      * sites on a multi-site install. Drafts::applyDraft() validates nothing
      * itself, so without this a draft missing a required field goes live.
+     * Validating means saving the draft, which is what the control panel does.
      *
      * @return array<string, string[]> validation errors; empty when the draft may be applied
      */

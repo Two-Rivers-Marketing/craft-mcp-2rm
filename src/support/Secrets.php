@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace twoRivers\craft\Mcp\support;
 
+use Closure;
+
 /**
  * Which config values a read must not hand back, and what it says instead.
  *
@@ -55,9 +57,16 @@ final class Secrets {
      * Replace every credential reachable under this key with the placeholder.
      *
      * Walks into arrays, so a whole category or config file can be handed over
-     * at once and each setting is judged on its own full key path.
+     * at once and each setting is judged on its own full key path. A config
+     * object (Craft's fluent `GeneralConfig::create()` style, which a config
+     * file may return) is read as its public properties, since those are what
+     * would be serialized.
      */
     public static function conceal(string $key, mixed $value): mixed {
+        if (is_object($value) && !$value instanceof Closure) {
+            $value = get_object_vars($value);
+        }
+
         if (self::withholds($key)) {
             return self::isCredential($value) ? self::PLACEHOLDER : $value;
         }
@@ -91,14 +100,14 @@ final class Secrets {
     }
 
     /**
-     * A credential is non-empty text, or a structure holding it.
+     * A credential is non-empty text, a number, or a structure holding one.
      *
      * The value type matters as well as the key: deferPublicRegistrationPassword
      * is a boolean toggle, and an empty string is a credential that was never
      * configured. Withholding either would report a secret that is not there.
      */
     private static function isCredential(mixed $value): bool {
-        return is_string($value) ? $value !== '' : is_array($value);
+        return is_string($value) ? $value !== '' : is_array($value) || is_int($value) || is_float($value);
     }
 
     /**
@@ -118,9 +127,15 @@ final class Secrets {
     }
 
     /**
+     * Whether the key is one of the paths, or ends in one: the same setting is
+     * `db.url` when read from the db category and `custom.db.url` when read
+     * from the config file.
+     *
      * @param string[] $paths
      */
     private static function isListed(string $key, array $paths): bool {
-        return in_array(strtolower($key), array_map(strtolower(...), $paths), true);
+        $key = '.' . strtolower($key);
+
+        return array_any($paths, static fn (string $path): bool => str_ends_with($key, '.' . strtolower($path)));
     }
 }

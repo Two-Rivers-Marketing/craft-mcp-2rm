@@ -118,6 +118,45 @@ describe('Secrets::conceal() walks a whole category', function () {
     });
 });
 
+describe('Secrets::conceal() on what a config file can return', function () {
+    // config/general.php and config/db.php normally return a fluent config
+    // object, and get_config reads them back whole through `custom.<file>`.
+    it('reads a config object as its public properties', function (string $key, object $config, string $secret) {
+        $result = Secrets::conceal($key, $config);
+
+        expect($result)->toBeArray()
+            ->and($result[$secret])->toBe(Secrets::PLACEHOLDER)
+            ->and(json_encode($result))->not->toContain('a-real-value');
+    })->with([
+        'general file' => ['custom.general', craft\config\GeneralConfig::create()->securityKey('a-real-value'), 'securityKey'],
+        'db file' => ['custom.db', new class () {
+            public string $driver = 'mysql';
+
+            public string $password = 'a-real-value';
+        }, 'password'],
+    ]);
+
+    it('withholds a connection url read from the db config file', function () {
+        $result = Secrets::conceal('custom.db', ['driver' => 'mysql', 'url' => 'mysql://root:hunter2@db:3306/craft']);
+
+        expect($result)->toBe(['driver' => 'mysql', 'url' => Secrets::PLACEHOLDER]);
+    });
+
+    it('keeps other urls', function () {
+        expect(Secrets::conceal('general.baseCpUrl', 'https://example.com/admin'))->toBe('https://example.com/admin');
+    });
+
+    it('withholds a numeric credential', function () {
+        expect(Secrets::conceal('custom.services.apiToken', 12345))->toBe(Secrets::PLACEHOLDER);
+    });
+
+    it('leaves a closure for the caller to serialize', function () {
+        $closure = static fn (): array => [];
+
+        expect(Secrets::conceal('custom.app', $closure))->toBe($closure);
+    });
+});
+
 describe('Secrets against the real Craft config surface', function () {
     // The rule was designed against Craft's own property names rather than
     // against imagined ones, so the check stays runnable: every general and db
