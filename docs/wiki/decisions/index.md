@@ -4,7 +4,9 @@ Locked, deferred, implemented, and superseded decisions. Read this at session st
 
 ## Active
 
-_(none yet)_
+| Decision | Date | Scope |
+| --- | --- | --- |
+| [3.0 drops the plugin's own MCP server and registers into Craft's](active/2026-11-12-register-into-craft-native-mcp.md) | 2026-11-12 | 3.0 architecture, `trm_` tool prefix, user-permission access model, 2.x security-fix-only |
 
 ## Deferred
 
