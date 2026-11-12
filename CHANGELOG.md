@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-12
+
 ### Added
 - `php craft mcp-2rm/agents-md --print` writes the conventions block to stdout and touches no file, for projects where the repo-root `AGENTS.md` is outside the Craft container (Craft in a subfolder, DDEV mounting only that folder)
 - `php craft mcp-2rm/agents-md --vendor-path=<path>` sets the vendor directory the block points at, as seen from the `AGENTS.md` file (default `vendor`; e.g. `--vendor-path=app/vendor` gives `app/vendor/2rm/craft-mcp/docs/conventions/`). Works with `--print` and when writing a file. An empty value is rejected
