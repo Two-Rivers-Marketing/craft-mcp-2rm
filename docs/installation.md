@@ -144,6 +144,8 @@ The command writes a short block between `<!-- craft-mcp:conventions:start -->` 
 | Option | Description |
 |--------|-------------|
 | `--file` | Path to the file to update (default: `AGENTS.md` in the project root, the directory holding `.ddev` or `.git`, or the Craft root if neither is found) |
+| `--print` | Write the block, markers included, to stdout and touch no file. Nothing else goes to stdout, so the output can be redirected |
+| `--vendor-path` | The vendor directory as seen from the directory holding `AGENTS.md` (default: `vendor`). The block points at `<vendor-path>/2rm/craft-mcp/docs/conventions/`. A trailing slash is trimmed; an empty value is an error |
 
 ```bash
 # Update the default AGENTS.md
@@ -151,7 +153,20 @@ php craft mcp-2rm/agents-md
 
 # Update a different file
 php craft mcp-2rm/agents-md --file=/path/to/AGENTS.md
+
+# Print the block instead of writing a file
+php craft mcp-2rm/agents-md --print
 ```
+
+#### Craft in a subfolder
+
+When Craft lives in a subfolder of the repo (for example `app/`) and DDEV mounts only that folder, the command can't reach the repo-root `AGENTS.md`, and the default path in the block (`vendor/...`) is wrong relative to the repo root. Print the block with the vendor path as seen from the repo root, then paste it into `AGENTS.md` (or between the existing markers, replacing the old block):
+
+```bash
+ddev craft mcp-2rm/agents-md --print --vendor-path=app/vendor
+```
+
+The block then points at `app/vendor/2rm/craft-mcp/docs/conventions/`. `--vendor-path` also applies when writing a file, with or without `--file`.
 
 ### Manual Setup
 

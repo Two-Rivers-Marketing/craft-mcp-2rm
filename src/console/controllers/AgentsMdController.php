@@ -28,12 +28,24 @@ class AgentsMdController extends Controller {
     public ?string $file = null;
 
     /**
+     * @var bool Print the block to stdout instead of writing a file. Nothing is read or written.
+     */
+    public bool $print = false;
+
+    /**
+     * @var string Vendor directory as seen from the AGENTS.md file's directory, e.g. `app/vendor` when Craft lives in `app/`. Defaults to `vendor`.
+     */
+    public string $vendorPath = AgentsMdBlock::DEFAULT_VENDOR_PATH;
+
+    /**
      * @inheritdoc
      */
     #[Override]
     public function options($actionID): array {
         $options = parent::options($actionID);
         $options[] = 'file';
+        $options[] = 'print';
+        $options[] = 'vendorPath';
 
         return $options;
     }
@@ -45,9 +57,26 @@ class AgentsMdController extends Controller {
      * `<!-- craft-mcp:conventions:end -->`. Re-running replaces it in place and
      * never duplicates it. The file is created when missing.
      *
+     * With `--print`, the block goes to stdout and no file is touched, for
+     * projects where the repo-root AGENTS.md is outside the Craft container.
+     *
      * @return int Exit code
      */
     public function actionIndex(): int {
+        try {
+            $vendorPath = AgentsMdBlock::normalizeVendorPath($this->vendorPath);
+        } catch (InvalidArgumentException $e) {
+            $this->stderr('--vendor-path: ' . $e->getMessage() . PHP_EOL, Console::FG_RED);
+
+            return ExitCode::USAGE;
+        }
+
+        if ($this->print) {
+            $this->stdout(AgentsMdBlock::printable($vendorPath));
+
+            return ExitCode::OK;
+        }
+
         $path = $this->file ?? $this->defaultPath();
         $existing = is_file($path) ? file_get_contents($path) : '';
 
@@ -58,7 +87,7 @@ class AgentsMdController extends Controller {
         }
 
         try {
-            $updated = AgentsMdBlock::apply($existing);
+            $updated = AgentsMdBlock::apply($existing, $vendorPath);
         } catch (InvalidArgumentException $e) {
             $this->stderr($e->getMessage() . PHP_EOL, Console::FG_RED);
 
