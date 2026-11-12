@@ -71,3 +71,9 @@ restart before new tools appear.
 - [neo-integration.md](neo-integration.md) — template resolution, another live-only failure mode
 - [freeform-integration.md](freeform-integration.md) — long-running-process cache hazards
 - [../log/2026-08-03-http-transport-non-bug.md](../log/2026-08-03-http-transport-non-bug.md) — the investigation that produced this page
+
+## Superseded
+
+- **2026-11-11 (v2.0.0, PR #50):** the devMode HTTP transport is served at `/mcp-2rm`, not `/mcp`. Craft 5.12 owns `/mcp`.
+- **2026-11-11 (v2.0.1, PR #51):** registration is gated. The server registers only what `disabledTools`, `enableDangerousTools`, `disabledPrompts` and `disabledResources` admit, and tools for optional plugins that are not installed are not listed, so tool counts on this page no longer match a given site.
+- **2026-11-12:** this page describes the 2.x transport only. 3.0 deletes `bin/mcp-server`, the HTTP route, SIGHUP handling and `reload_mcp`; Craft's native server provides HTTP and stdio. See [../decisions/active/2026-11-12-register-into-craft-native-mcp.md](../decisions/active/2026-11-12-register-into-craft-native-mcp.md).

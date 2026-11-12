@@ -1,7 +1,16 @@
+---
+type: brief
+timestamp: 2026-11-12
+description: What craft-mcp-2rm is, its fork lineage, the 3.0 direction, and the live-QA effort.
+tags: [overview, fork, lineage, v3]
+source: "composer.json and CHANGELOG.md on main (v2.0.1); decisions/active/2026-11-12-register-into-craft-native-mcp.md"
+confidence: verified
+---
+
 # Project: craft-mcp-2rm
 
 **Type:** Craft CMS 5 plugin — MCP (Model Context Protocol) server
-**Package:** `2rm/craft-mcp` · handle `mcp` · namespace `twoRivers\craft\Mcp`
+**Package:** `2rm/craft-mcp` · handle `mcp-2rm` · namespace `twoRivers\craft\Mcp`
 **Repo:** github.com/Two-Rivers-Marketing/craft-mcp-2rm
 **Fork of:** `stimmt/craft-mcp` v1.3.0 (MIT), upstream github.com/stimmtdigital/craft-mcp
 
@@ -18,7 +27,11 @@ An MCP server that connects an AI assistant directly to a running Craft CMS inst
 
 These arrived via a nightshift run (issues #5–#12); test suite 177 → 417 at the time.
 
-## Current focus: live-QA
+## Direction: 3.0 registers into Craft's native MCP server
+
+Craft 5.12 ships its own MCP server. From 3.0 the plugin stops running a server of its own and registers its tools into Craft's, prefixed `trm_`, with checks against the acting user's Craft permissions. 2.x gets security fixes only. Decision: [decisions/active/2026-11-12-register-into-craft-native-mcp.md](../decisions/active/2026-11-12-register-into-craft-native-mcp.md). Build spec: [plans/v3-native-mcp-migration.md](../plans/v3-native-mcp-migration.md).
+
+## Earlier focus: live-QA (2026-07 to 2026-08)
 
 The entire Neo/Freeform/asset **write** surface was built duck-typed with **no live plugin install** in the dev env, so none of it had run against real Neo/Freeform until now. The active effort is a live-QA pass against the mbd install (Craft 5.10.5, Neo 5.5.10, Freeform 5.15.16), fixing what breaks, in this priority order:
 
@@ -32,10 +45,16 @@ Features and gaps surfaced along the way are tracked in [plans/qa-feature-backlo
 
 ## How mbd consumes it
 
-mbd (the primary 2RM site) wires this fork in as a **Composer path repo with a symlink** (`vendor/2rm/craft-mcp` → `_plugins/craft-mcp-2rm`), so edits here are live in mbd immediately — no publish step. Long-term intent is to consume it as a versioned dependency instead. The MCP server is a long-running process: **code changes require a SIGHUP restart** of `bin/mcp-server` (via `SignalHandler`); `reload_mcp` only detects newly installed plugins, not code.
+mbd (the primary 2RM site) wires this fork in as a **Composer path repo with a symlink** (`vendor/2rm/craft-mcp` → `_plugins/craft-mcp-2rm`), so edits here are live in mbd immediately — no publish step. Long-term intent is to consume it as a versioned dependency instead. On 2.x the MCP server is a long-running process: **code changes require a SIGHUP restart** of `bin/mcp-server` (via `SignalHandler`); `reload_mcp` only detects newly installed plugins, not code.
 
 ## Cross-references
 
 - [decisions/index.md](../decisions/index.md)
 - [architecture/freeform-integration.md](../architecture/freeform-integration.md)
 - [plans/qa-feature-backlog.md](../plans/qa-feature-backlog.md)
+- [decisions/active/2026-11-12-register-into-craft-native-mcp.md](../decisions/active/2026-11-12-register-into-craft-native-mcp.md)
+
+## Superseded
+
+- **2026-11-11 (v2.0.0, PR #50):** the plugin handle was `mcp`. It is now `mcp-2rm`, because Craft 5.12 uses `mcp` for its native MCP server. Settings moved to `config/mcp-2rm.php`, console commands to `mcp-2rm/*`, the HTTP route to `/mcp-2rm`.
+- **2026-11-12:** "Current focus: live-QA" described the active effort. The active direction is now 3.0 (above); item 5 of the live-QA list (Neo childBlocks / positioning edge cases) was never closed out here.

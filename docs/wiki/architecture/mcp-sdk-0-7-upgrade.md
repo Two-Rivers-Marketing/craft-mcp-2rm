@@ -56,3 +56,9 @@ Run by the PR's pipeline test step in a **throwaway Craft 5 site with Neo 5.5.13
 - [mcp-transport.md](mcp-transport.md) — pagination (`setPaginationLimit` is `Builder.php:246` on 0.7.1), SIGHUP vs `reload_mcp`
 - [../log/2026-10-11-mcp-sdk-advisory-fix.md](../log/2026-10-11-mcp-sdk-advisory-fix.md) — the ingest event and open follow-ups
 - [../../../STATE.md](../../../STATE.md) — follow-ups tracked under Next steps
+
+## Superseded
+
+- **2026-10-12:** "Not tagged or released; `v1.8.0` is still the newest tag." PR #35 shipped in `v1.8.1`.
+- **2026-11-11 (v2.0.0, PR #50):** the constraint is no longer `^0.7.1`. It is `~0.8.1 || ~0.9.0`, so the plugin installs beside Craft 5.12.0.1 (`mcp/sdk 0.8.1`) and 5.12.1 (`~0.9.0`). "sdk 0.8.x exists and was deliberately left alone" no longer holds. SDK 0.10 is unsupported (it renames the SDK's namespaces). The eager-loading pin and size caps on this page were not re-verified on 0.8/0.9 in this wiki.
+- **2026-11-12:** 3.0 removes the plugin's own server, and with it this page's subject. See [../decisions/active/2026-11-12-register-into-craft-native-mcp.md](../decisions/active/2026-11-12-register-into-craft-native-mcp.md).

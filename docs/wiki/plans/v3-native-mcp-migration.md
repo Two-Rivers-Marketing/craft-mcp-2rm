@@ -9,7 +9,7 @@ confidence: inferred
 
 # 3.0 build spec: register into Craft's native MCP server
 
-Decision and rationale: [../decisions/active/2026-11-12-register-into-craft-native-mcp.md](../decisions/active/2026-11-12-register-into-craft-native-mcp.md). This page is the how. Nothing here is built yet. Tool counts and Craft behaviour were read from source, not run.
+Decision and rationale: [../decisions/active/2026-11-12-register-into-craft-native-mcp.md](../decisions/active/2026-11-12-register-into-craft-native-mcp.md). This page is the how; work is tracked in GitHub issue [#53](https://github.com/Two-Rivers-Marketing/craft-mcp-2rm/issues/53). Nothing here is built yet. Tool counts and Craft behaviour were read from source, not run.
 
 ## How Craft's server takes plugin tools
 

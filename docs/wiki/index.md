@@ -12,6 +12,7 @@ Read [WIKI-CLAUDE.md](WIKI-CLAUDE.md) before writing to any page.
 | [decisions/](decisions/index.md) | Locked, deferred, implemented, and superseded decisions |
 | [architecture/](architecture/index.md) | How integrations work today + non-obvious gotchas |
 | [plans/](plans/index.md) | Proposed features and the QA-driven backlog |
+| [research/](research/index.md) | Investigations and point-in-time technical exploration |
 | log/ | Append-only ingest events (`log/YYYY-MM-DD-*.md`) |
 
-Empty until first use: `strategy/`, `research/`, `synthesis/`, `sources/`, `raw/`.
+Empty until first use: `strategy/`, `synthesis/`, `sources/`, `raw/`.
