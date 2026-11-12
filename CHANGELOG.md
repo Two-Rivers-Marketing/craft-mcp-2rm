@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `create_block_type` picks the new Neo block type's `sortOrder` from the highest slot held by any block type or block-type group on the field, plus one. Before, it used the block type count plus one, which ignored groups and gaps, so on a field with groups the new block type could share a `sortOrder` with a group or another block type. Neo then dropped one of them from `neo.orders.<fieldUid>`, and `project-config/apply` on another environment failed with `Undefined array key "sortOrder"`
+
 ## [2.0.2] - 2026-11-12
 
 ### Security
