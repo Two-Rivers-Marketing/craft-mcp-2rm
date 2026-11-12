@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- `get_config` no longer returns credentials. `general.securityKey`, `db.password`, `db.user`, `db.dsn`, `db.url` and any key in a config file whose last word names a credential (`password`, `secret`, `token`, `key`, `credentials`, `username`) are returned as a redaction placeholder, whether asked for directly or as part of a whole category. The tool is not a dangerous tool, so it was available in production
+
+### Fixed
+- `publish_draft` validates the draft as live content before applying it, the way the control panel does, and refuses with the errors per field when it fails. A draft missing a required field was published with `published: true`
+
 ## [2.0.1] - 2026-11-11
 
 ### Security

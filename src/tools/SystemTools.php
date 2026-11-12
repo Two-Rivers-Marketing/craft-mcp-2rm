@@ -19,6 +19,7 @@ use twoRivers\craft\Mcp\support\LogEntry;
 use twoRivers\craft\Mcp\support\LogFormatter;
 use twoRivers\craft\Mcp\support\LogParser;
 use twoRivers\craft\Mcp\support\SafeExecution;
+use twoRivers\craft\Mcp\support\Secrets;
 
 /**
  * System-related MCP tools for Craft CMS.
@@ -31,7 +32,7 @@ class SystemTools {
      */
     #[McpTool(
         name: 'get_config',
-        description: 'Get a Craft CMS configuration value by dot-notation key (e.g., "general.devMode", "db.driver")',
+        description: 'Get a Craft CMS configuration value by dot-notation key (e.g., "general.devMode", "db.driver"). Credentials (security key, database password, API keys and tokens) are returned as a redaction placeholder.',
     )]
     #[McpToolMeta(category: ToolCategory::SYSTEM)]
     public function getConfig(string $key, ?RequestContext $context = null): array {
@@ -61,7 +62,7 @@ class SystemTools {
 
             return [
                 'key' => $key,
-                'value' => $value,
+                'value' => Secrets::conceal($key, $value),
             ];
         });
     }
