@@ -1,0 +1,24 @@
+# Aikido repo config: https://help.aikido.dev/code-scanning/scanning-practices/ignore-via-code-with-aikido-files
+#
+# Excluded paths skip secrets, SAST, lockfile, code quality and Deep Review scanning.
+# Matching is plain substring (no wildcards): an entry matches anywhere in a file path.
+#
+# Only exclude content we didn't write and never ship. Keep scanning anything that can
+# hold a real credential:
+#   - config/project/  Craft UUIDs trip "Generic API Key", but plugin keys pasted
+#                      in place of env vars land here too. Ignore UUID hits in the UI.
+#   - .shift/          agent transcripts have leaked real credentials before
+#   - scripts/         migration/import scripts connect to databases
+#
+# Workspace-wide settings (license issues in feed, global CVE ignores) live in the
+# Aikido UI, not here.
+
+exclude:
+  paths:
+    - docs/wiki/raw            # immutable third-party captures (crawls, exports)
+    - storage/import-tmp       # content import scratch: probes and staged images
+
+# ignore:
+#   cves:
+#     CVE-XXXX-XXXXX:
+#       reason: Why this is not reachable or is accepted
